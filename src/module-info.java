@@ -61,4 +61,6 @@ module MXPSQL.BKMTMEdit {
 	exports MXPSQL.BKMTMEdit.widgets;
 	exports MXPSQL.BKMTMEdit.pluginapi;
 	
+	// uses
+	uses MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;
 }

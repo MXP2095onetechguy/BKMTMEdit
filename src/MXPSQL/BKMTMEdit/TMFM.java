@@ -754,9 +754,10 @@ public class TMFM extends JFrame {
                 
                 {
                 	pluginm = new JMenu("Plugins");
-                	// pluginm.setEnabled(false);
+                	pluginm.setEnabled(false);
                 	
                 	StaticStorageProperties.loadedTabPlugins.forEach((tplprovider) -> {
+                		pluginm.setEnabled(true);
                 		BKMTMEditTabPlugin tpl = tplprovider.get();
                 		tpl.etab = tabbedEditor;
                 		tpl.pluginMenu = pluginm;
