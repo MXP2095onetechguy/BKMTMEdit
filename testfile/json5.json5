@@ -1,0 +1,5 @@
+{
+	// comment, this is not really a json5 document, but toss some stuf there
+	"key": "value",
+	"a": ".out"
+}

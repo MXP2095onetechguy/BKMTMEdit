@@ -1,0 +1,9 @@
+// Get the text, make it double and set it back
+// Appending the duplicate basically
+// A demo
+
+String text = CurrentText;
+
+text = text + "\n" + text;
+
+Editor.setText(text);

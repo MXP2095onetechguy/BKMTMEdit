@@ -1,0 +1,6 @@
+.main
+	ASL $0000 $00FF
+	LDA $00FF
+	LDX $00FF
+
+; comment

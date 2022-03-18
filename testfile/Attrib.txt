@@ -1,0 +1,4 @@
+Just check the pom.xml and check with what you see, also please read the LICENSE file if you want to use whatever is there for your project.
+Also attribute me pls if you want to make this proprietary or fork it or whatever.
+
+The icons uses the Crystal Clear and Tango icon set. If you do not like the jumbled icons, you may replace them.

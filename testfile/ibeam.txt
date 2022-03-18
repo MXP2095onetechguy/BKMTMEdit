@@ -1,0 +1,10 @@
+If you hover the cursor over this editor component, 
+the cursor will show an I-Beam.
+
+###########
+	#	 
+	#	 
+	#	 
+	#	 
+	#	 
+###########

@@ -1,0 +1,15 @@
+// Bork if today is thursday or monday
+// If not, tell the time
+// A demo
+
+
+// calendar
+Calendar cal = Calendar.getInstance();
+boolean isathursdayormonday = (cal.get(Calendar.DAY_OF_WEEK) == Calendar.THURSDAY) || (cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY);
+
+if(isathursdayormonday){
+	Editor.area.insert("bork bork bork", Editor.area.getCaretPosition());
+}
+else{
+	Editor.area.insert(new Date().toString(), CaretPosition);
+}

@@ -1,0 +1,6 @@
+// Macropend
+// A macro, more sophiticasted
+// Appends this at your cursor
+// A demo
+
+Editor.area.insert(CurrentText, CaretPosition);

@@ -1,0 +1,5 @@
+// Yes macro
+// A demo
+print("yes");
+
+Editor.area.insert("yes", CaretPosition);

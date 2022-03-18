@@ -1,0 +1,19 @@
+### Required step to test out this thing
+
+1. Download and install eclipse (That is what I use to develop this thing).
+
+2. Somehow get this project to your computer (Git is the best).
+
+3. View a tutorial on how to import projects.
+
+4. Import the project (The method depends. If you get it from Git, then import a directory).
+
+5. View a tutorial on how to run a project in eclipse.
+
+6. Run the project with your new-found knowledge.
+
+### Only for those that want a jar
+
+7. View a tutorial on how to export a project as a jar in eclipse.
+
+8. Export it to a jar to your desired location with your new-found knowledge.
