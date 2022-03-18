@@ -39,3 +39,7 @@ No, first too lazy to upload it online and if I am not lazy, I am having trouble
 ##### Why does it say that the platform theme is broken
 
 Find the code that will enable the platform theme and uncomment it. Build the project and see the problem.
+
+##### Why is there Jetty and why is the variable called MJFX eventhough the editor is called TxEditor
+
+The editor component originally used is [Monaco-Editor](https://github.com/microsoft/monaco-editor "The editor that powers VS-Code (Visual Studio)") and it uses service workers and you know they need to come from https or http, so Jetty for it. But there is a problem with the webview and I ended up replacing it with [RSyntaxTextArea](https://github.com/bobbylight/RSyntaxTextArea "Nice component btw"). Jetty and MJFX is the remains of that.
