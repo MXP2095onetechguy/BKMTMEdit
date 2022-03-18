@@ -12,7 +12,7 @@
   	
   	<slf4j.version>1.7.36</slf4j.version>
   	
-  	<jetty.version>11.0.8</jetty.version>
+  	<jetty.version>11.0.5</jetty.version>
   	
   	<pf4j.version>3.6.0</pf4j.version>
   	
