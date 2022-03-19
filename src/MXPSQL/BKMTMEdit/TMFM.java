@@ -88,7 +88,8 @@ public class TMFM extends JFrame {
     SwingWorker<Void, Void> bshmacroworker;
     FTreeWorker ftreeworker;
     
-    JMenu pluginm;
+    JMenu jarpluginm;
+    JMenu bshpluginm;
 	
 	
 	private void initUI() {
@@ -753,19 +754,46 @@ public class TMFM extends JFrame {
                 }
                 
                 {
-                	pluginm = new JMenu("Plugins");
-                	pluginm.setEnabled(false);
+                	JMenu pluginm = new JMenu("Plugins");
+                	bshpluginm = new JMenu("Beanshell Plugins");
+                	bshpluginm.setEnabled(false);
                 	
-                	StaticStorageProperties.loadedTabPlugins.forEach((tplprovider) -> {
-                		pluginm.setEnabled(true);
-                		BKMTMEditTabPlugin tpl = tplprovider.get();
-                		tpl.etab = tabbedEditor;
-                		tpl.pluginMenu = pluginm;
-                		System.out.println(">>> " + tpl.sayHello());
-                		tpl.preInit();
-                		tpl.initUIandLogic();
-                	});
+                	for(Map.Entry<String, String> plugin : StaticStorageProperties.bshPlugins.entrySet()) {
+                		JMenuItem pluginmi = null;
+                		bshpluginm.setEnabled(true);
+                		
+                		try {
+                			pluginmi = new JMenuItem(FilenameUtils.getBaseName(new File(plugin.getKey()).getCanonicalFile().getName()));
+						} catch (IOException e) {
+							pluginmi= new JMenuItem("Plugin");
+						}
+                		
+                		pluginmi.addActionListener((e) -> {
+                			Interpreter i = new Interpreter();
+                			
+                			try {
+                				// System.out.println(plugin.getValue());
+                				i.set("tabbedEditor", tabbedEditor);
+								i.eval(plugin.getValue());
+							} catch (EvalError e1) {
+								// TODO Auto-generated catch block
+								ByteArrayOutputStream baos = new ByteArrayOutputStream();
+								PrintStream bs = new PrintStream(baos);
+								e1.printStackTrace(bs);
+								StaticStorageProperties.logger.error("Evaluation error");
+								System.err.println(baos.toString());
+								JOptionPane.showMessageDialog(dis, baos.toString(), "No, smth is wrong with your plguin code", JOptionPane.ERROR_MESSAGE);
+							}
+                		});
+                		
+                		bshpluginm.add(pluginmi);
+                	}
                 	
+                	jarpluginm = new JMenu("JAR Plugins");
+                	jarpluginm.setEnabled(false);
+                	
+                	pluginm.add(bshpluginm);
+                	pluginm.add(jarpluginm);
                 	mb.add(pluginm);
                 }
                 

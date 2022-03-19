@@ -152,8 +152,15 @@ public class TMMain {
 		ps.println("# Home page!");
 		ps.println("homepage=https://google.com");
 		ps.println();
-		ps.println("# Beanshell macros");
+		ps.println("# Extensions");
+		ps.println("# Extend the editor with plugins and macros");
+		ps.println("# For JAR plugins, no need here, pf4j will handle it");
+		ps.println("Btw, the filename is the id. BKTMEdit will not warn you if there are same ids, but that is impossible");
 		ps.println("# There cannot be any '#' in the filename because that is used as a separator");
+		ps.println("# Beanshell plugins");
+		ps.println("# Example: loadbshplugins=p1.bsh#p2.bsh");
+		ps.println("loadbshplugins=");
+		ps.println("# Beanshell macros");
 		ps.println("# Example: preloadbshmacros=s1.bsh#s2.bsh");
 		ps.println("# The macro interpreter has the Editor variable, use that variable to set and get text.");
 		ps.println("preloadbshmacros=");
@@ -286,21 +293,50 @@ public class TMMain {
 			}
 			
 			{
-				String[] macroName = StaticStorageProperties.config.getString("preloadbshmacros").split("#");
-				if(macroName.length > 0) {				
-					for(int i = 0; i < macroName.length; i++) {
-						File ff = new File(macroName[i]);
-						if(ff.isFile()) {
-							String code = "";
-						
-							code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
-						
-							StaticStorageProperties.bshMacros.put(ff.getCanonicalPath(), code);
+				String bshMacroNameRaw = StaticStorageProperties.config.getString("preloadbshmacros");
+				if(bshMacroNameRaw != null && !bshMacroNameRaw.isEmpty() && !bshMacroNameRaw.isBlank()) {
+					String[] bshMacroName = bshMacroNameRaw.split("#");
+					if(bshMacroName.length > 0) {				
+						for(int i = 0; i < bshMacroName.length; i++) {
+							File ff = new File(bshMacroName[i]);
+							if(ff.isFile()) {
+								String code = "";
+							
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+							
+								StaticStorageProperties.bshMacros.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read macro " + bshMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
 						}
-						else {
-							System.out.println("A macro check failed! Press alt+tab to see a dialog box");
-							JOptionPane.showMessageDialog(null, "Failed to read macro " + macroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
-							System.exit(StaticStorageProperties.badExit);
+					}
+				}
+			}
+			
+			{
+				String bshPluginNameRaw = StaticStorageProperties.config.getString("loadbshplugins");
+				if(bshPluginNameRaw != null && !bshPluginNameRaw.isBlank() && !bshPluginNameRaw.isEmpty()) {
+					String[] bshPluginName = bshPluginNameRaw.split("#");
+					
+					if(bshPluginName.length > 0) {
+						for(int i = 0; i < bshPluginName.length; i++) {
+							File ff = new File(bshPluginName[i]);
+							
+							if(ff.isFile()) {
+								String code = "";
+								
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+								
+								StaticStorageProperties.bshPlugins.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A plugin check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read plugin " + bshPluginName[i] + ".", "Plugin Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
 						}
 					}
 				}
@@ -399,10 +435,6 @@ public class TMMain {
 		
 		if(!StaticStorageProperties.logoff)
 			StaticStorageProperties.logger.debug("Starting Up");
-		
-		StaticStorageProperties.tabproviders.stream().forEach((e) -> {
-			StaticStorageProperties.loadedTabPlugins.add(e);
-		});
 		
 		try {
 			

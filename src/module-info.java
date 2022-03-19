@@ -43,7 +43,8 @@ module MXPSQL.BKMTMEdit {
 	
 	// pf4j
 	// broken rn
-	// your best bet is macros
+	// your best bet is poorly written beanshell plugins
+	// the jar plugin system is broken
 	// requires transitive org.pf4j;
 	
 	// rsyntaxtextarea

@@ -54,7 +54,7 @@ public class StaticStorageProperties {
 	public static File synthloc = null;
 	
 	// editors
-	public static HashMap<String, String> bshMacros = new HashMap<String, String>();
+	public static Map<String, String> bshMacros = new HashMap<String, String>();
 	public static boolean remimdMeAboutMacroSafety = true;
 	public static File startingFile = null;
 	public static FileFilter[] filt = new FileFilter[] {
@@ -66,8 +66,8 @@ public class StaticStorageProperties {
 	public static HashMap<String, ImmutablePair<String[], String>> syntaxset = new HashMap<String, ImmutablePair<String[], String>>();
 	
 	// Plugins
-	public static ServiceLoader<BKMTMEditTabPlugin> tabproviders = ServiceLoader.load(BKMTMEditTabPlugin.class);
-	public static List<ServiceLoader.Provider<BKMTMEditTabPlugin>> loadedTabPlugins = new ArrayList<ServiceLoader.Provider<BKMTMEditTabPlugin>>();
+	public static Object pluginManager;
+	public static Map<String, String> bshPlugins = new HashMap<String, String>();
 	
 	// Path
 	public static Path cwdPath = Paths.get(System.getProperty("user.dir"));

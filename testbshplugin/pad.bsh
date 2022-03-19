@@ -1,0 +1,39 @@
+// Pad
+// A demo plugin
+// A pad area where you can pop as much window as you want
+
+JInternalFrame jif = new JInternalFrame();
+JDesktopPane jdp = new JDesktopPane();
+
+{
+	JMenuBar mb = new JMenuBar();
+	
+	{
+		JMenu f = new JMenu("File");
+		
+		JMenuItem newm = new JMenuItem("New");
+		
+		newm.addActionListener(new ActionListener(){
+			actionPerformed( event ) {
+				JInternalFrame jif2 = new JInternalFrame("JIF", true, true, true, true);
+				
+				jif2.add(new JScrollPane(new JTextArea()));
+				
+				jif2.setBounds(0, 0, 250, 85);  
+				
+				jdp.add(jif2);
+				
+				jif2.setVisible(true);
+			}
+		});
+		
+		f.add(newm);
+		
+		mb.add(f);
+	}
+	
+	jif.setJMenuBar(mb);
+}
+
+jif.add(new JScrollPane(jdp));
+tabbedEditor.add(jif, "Text Pad");

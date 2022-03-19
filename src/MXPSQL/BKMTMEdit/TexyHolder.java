@@ -42,6 +42,7 @@ public class TexyHolder {
 	
 	public final static String TexyEx = Texy + "!";
 	
+	// old and broken lmao, I decided not to use JPMS
 	public final static String moduleRunCmd = "java --module-path . --module MXPSQL.BKMTMEdit/zip4j/rsyntaxtextarea/rstaui/javafx.web/javafx.base/javafx.swing/javafx.media/javafx.graphics/javafx.controls/net.sourceforge.argparse4j/org.apache.commons.io/org.apache.commons.lang3/org.apache.commons.configuration2/org.slf4j/org.slf4j.simple/org.eclipse.jetty.http/org.eclipse.jetty.util/org.eclipse.jetty.server/bsh/org.eclipse.swt -jar BKMTMEdit.jar";
 	
 	private TexyHolder(){
