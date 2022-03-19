@@ -31,17 +31,17 @@ import javax.swing.*;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.net.http.HttpClient;
-import MXPSQL.BKMTMEdit.pluginapi.*;
 import org.eclipse.jetty.server.Server;
 import javax.swing.filechooser.FileFilter;
 import org.apache.commons.configuration2.*;
+import com.github.zafarkhaja.semver.Version;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class StaticStorageProperties {
 	// runtime
-	public static final double version = 1.00;
+	public static final Version version = Version.valueOf("1.1.0");
 	public static final int abortExit = 1;
 	public static final int goodExit = 0;
 	public static final int parserExit = -1;

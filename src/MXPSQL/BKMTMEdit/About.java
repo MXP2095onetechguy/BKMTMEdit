@@ -53,7 +53,7 @@ public class About extends JDialog {
 			
 			{
 				JLabel desc = new JLabel("");
-				desc.setText("<html>hEY, this is a text editor. Written in Java using Swing, AWT and JavaFX. <br>You know, this is actualy open source, under MIT License, you can visit the source with the button below.</html>");
+				desc.setText("<html>hEY, this is a text editor. Written in Java using Swing, AWT and JavaFX. <br>You know, this is actualy open source, under MIT License, you can visit the source with the button below. <br>Version " + StaticStorageProperties.version.toString() + ".</html>");
 				pane.add(desc, BorderLayout.SOUTH);
 			}
 			

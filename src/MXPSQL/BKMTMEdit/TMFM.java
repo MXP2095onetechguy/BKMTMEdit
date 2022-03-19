@@ -1048,7 +1048,15 @@ public class TMFM extends JFrame {
 			        			    	return;
 			        			    }
 			        			    
-			        			    String filename = JOptionPane.showInputDialog(dis, "What do you want for your renamed thing? \nIt is from " + ((File) objec) + " to ...");
+			        			    String filename;
+									try {
+										filename = JOptionPane.showInputDialog(dis, "What do you want for your renamed thing? \nIt is from " + ((File) objec) + " to ...", FilenameUtils.getBaseName(((File)objec).getCanonicalPath()));
+									} catch (IOException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+										JOptionPane.showMessageDialog(dis, e);
+										return;
+									}
 			        			    
 			        			    if(filename != null) {
 		        			    		File f = (File) objec;
@@ -2063,7 +2071,7 @@ public class TMFM extends JFrame {
 		int r = JOptionPane.YES_OPTION;
 		
 		if(StaticStorageProperties.remimdMeAboutMacroSafety)
-			r = JOptionPane.showConfirmDialog(dis, "Are you sure about running that? It may be dangerous. \nIt can wipe your drive, \nsend your files somewhere or \nsend your computer's soul to someone's dining hall. \nWho knows, your computer may have you as it's dinner if you run the macro. \nThe point is not to trust any macros from the internet.", "Watch Out!", JOptionPane.YES_NO_OPTION);
+			r = JOptionPane.showConfirmDialog(dis, "Are you sure about running that? It may be dangerous. \nIt can wipe your drive, \nsend your files somewhere or \nsend your computer's soul to someone's dining hall. \nWho knows, your computer may have you as it's dinner if you run the macro. \nThe point is not to trust any macros from the internet unless you checked it yourself \n(the can delete your drive and ruin your life).", "Watch Out!", JOptionPane.YES_NO_OPTION);
 		
 		if(r == JOptionPane.YES_OPTION)
 			if(input != null)
@@ -2072,6 +2080,7 @@ public class TMFM extends JFrame {
 	
 	public void runBshMacro(String macro) {
 		Interpreter i = new Interpreter();
+		StaticStorageProperties.logger.info("Run a beanshell macro.");
 		
 		if(bshmacroworker != null) {
 			bshmacroworker.cancel(true);
@@ -2092,34 +2101,19 @@ public class TMFM extends JFrame {
 				@Override
 				protected Void doInBackground() throws Exception {
 					// TODO Auto-generated method stub
-					CountDownLatch cdl = new CountDownLatch(1);
 					
-					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-
-						@Override
-						protected Void doInBackground() throws Exception {
-							// TODO Auto-generated method stub
-							
-							try {
-								i.set("Editor", mjfx);
-								i.set("CaretPosition", mjfx.area.getCaretPosition());
-								i.set("CurrentText", mjfx.getText());
-								i.eval(macro);
-								
-								if(!mjfx.getText().equals(oldtext))
-									markChanged();
-							} catch (EvalError e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							
-							return null;
-						}
+					try {
+						i.set("Editor", mjfx);
+						i.set("CaretPosition", mjfx.area.getCaretPosition());
+						i.set("CurrentText", mjfx.getText());
+						i.eval(macro);
 						
-					};
-					
-					worker.execute();
-					cdl.await();
+						if(!mjfx.getText().equals(oldtext))
+							markChanged();
+					} catch (EvalError e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					
 					Platform.runLater(() -> pbar.setProgress(0));
 					return null;

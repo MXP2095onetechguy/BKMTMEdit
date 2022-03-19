@@ -44,6 +44,9 @@ import javax.swing.plaf.synth.SynthLookAndFeel;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+
+import com.github.zafarkhaja.semver.Version;
+
 import java.lang.reflect.InvocationTargetException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -141,6 +144,7 @@ public class TMMain {
 		
 		ps.println("# " + StaticStorageProperties.baseTitle + ", this is the config file.");
         ps.println("# LOLOLOLOL");
+        ps.println("# I recommend do not mess with this: version");
 		ps.println("version=" + String.valueOf(StaticStorageProperties.version));
 		ps.println("# editor related");
 		ps.println("# editor themes option: platform, metal, nimbus and synth");
@@ -171,7 +175,7 @@ public class TMMain {
 	}
 	
 	public static void main(String[] args) {
-		ArgumentParser parser = ArgumentParsers.newFor(StaticStorageProperties.baseTitle).addHelp(true).build().version(String.valueOf(StaticStorageProperties.version)).description("Good Java Text Editor, with syntax highlighting.").epilog("Ook, noice. That's it. That's all folks! The end.");
+		ArgumentParser parser = ArgumentParsers.newFor(StaticStorageProperties.baseTitle).addHelp(true).build().version(StaticStorageProperties.version.toString()).description("Good Java Text Editor, with syntax highlighting.").epilog("Ook, noice. That's it. That's all folks! The end.");
 		
 		{
 			parser.addArgument("-v", "--version").action(Arguments.version()).help("It's obvious what does it mean on the flag. If you still don't get it, it is used to get the version");
@@ -179,6 +183,7 @@ public class TMMain {
 			parser.addArgument("-l", "--logoff").dest("turnofflog").help("turn off those pesky but useful log messages").required(false).action(Arguments.storeTrue());
 			parser.addArgument("-c", "--config").dest("configPath").help("Path to config").type(String.class).required(false);
 			parser.addArgument("-p", "--homepage").dest("homepage").help("Your homepage!").type(String.class).required(false);
+			parser.addArgument("--warnotpeace").dest("wnp").help("War not peace because peacenotwar has shown peace to be the enemy. #Warnotpeace #Nopeacenotwar and don't #peacenotwar").required(false).action(Arguments.storeTrue());
 			parser.addArgument("-d", "--pwd").dest("cwd").help("Current directory").type(String.class).required(false);
 		}
 		
@@ -275,20 +280,37 @@ public class TMMain {
 			Configurations configs = new Configurations();
 			StaticStorageProperties.config = configs.properties(f);
 			
-			double confVer = 0;
+			String rawSemConfVer = "";
 			try {
-				confVer = StaticStorageProperties.config.getDouble("version");
+				rawSemConfVer = StaticStorageProperties.config.getString("version");
 			}
 			catch(ConversionException cex){
-				System.out.println("No, smth is wrong with your config version, it's not a number!");
+				StaticStorageProperties.logger.error("No, smth is wrong with your config version, it's not valid!");
 				System.exit(StaticStorageProperties.badExit);
 			}
 			
 			StaticStorageProperties.remimdMeAboutMacroSafety = (StaticStorageProperties.config.getString("remindmeaboutmacrosafety", "true").equals("true"));
 			
-			if(StaticStorageProperties.version > confVer) {
-				System.out.println("Outdated idot. press alt+tab to get the dialog");
-				JOptionPane.showMessageDialog(null, "Too old of a config, I cannot run with this, update your config.");
+			if(rawSemConfVer != null) {
+				if(rawSemConfVer.isBlank() && rawSemConfVer.isEmpty()) {
+					StaticStorageProperties.logger.error("The semver is empty.");
+					System.exit(StaticStorageProperties.badExit);
+				}
+			}
+			else {
+				StaticStorageProperties.logger.error("I tink you are missing the version in the config.");
+				System.exit(StaticStorageProperties.badExit);
+			}
+			
+			try{
+				if(StaticStorageProperties.version.greaterThan(Version.valueOf(rawSemConfVer))) {
+					StaticStorageProperties.logger.error("Outdated idot. press alt+tab to get the dialog");
+					JOptionPane.showMessageDialog(null, "Too old of a config, I cannot run with this, update your config.");
+					System.exit(StaticStorageProperties.badExit);
+				}
+			}
+			catch(Exception e){
+				StaticStorageProperties.logger.error("I don't think " + rawSemConfVer + " is a valid semantic versioning, I use it ok. Fix it ok. I cannot run with that version.");
 				System.exit(StaticStorageProperties.badExit);
 			}
 			

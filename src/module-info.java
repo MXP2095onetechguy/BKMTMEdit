@@ -57,6 +57,9 @@ module MXPSQL.BKMTMEdit {
 	// terminalfx
 	// requires transitive terminalfx;
 	
+	// semver
+	requires java.semver;
+	
 	// export
 	exports MXPSQL.BKMTMEdit.utils;
 	exports MXPSQL.BKMTMEdit.widgets;
