@@ -1,0 +1,5 @@
+You can make beanshell plugins or JAR plugins (JAR plugins uses pf4j and it's broken on modular builds)
+
+
+API for beanshell:
+tabbedEditor: tabbedEditor in the TMFM.java, the tab

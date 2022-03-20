@@ -1,0 +1,19 @@
+Only beanshell and javascript macros are supported
+
+Common Text editing API (essential for macros): 
+Editor: the editor component to have power
+CaretPosition: current caret position before being run
+CurrentText: current text before being run
+
+Common utility API (not essential, but useful for debugging):
+Out: java.lang.System.out
+Err: java.lang.System.err
+
+Uncategorized Common API:
+Macro: the macro code
+
+Language specific API:
+	JS:
+		Rhino: the rhino engine (Yes, I use rhino)
+	Beanshell:
+		bshi: the beanshell interpreter

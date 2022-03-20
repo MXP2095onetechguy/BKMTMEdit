@@ -55,6 +55,7 @@ public class StaticStorageProperties {
 	
 	// editors
 	public static Map<String, String> bshMacros = new HashMap<String, String>();
+	public static Map<String, String> rhinoJSMacros = new HashMap<String, String>();
 	public static boolean remimdMeAboutMacroSafety = true;
 	public static File startingFile = null;
 	public static FileFilter[] filt = new FileFilter[] {

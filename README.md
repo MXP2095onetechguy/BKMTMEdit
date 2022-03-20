@@ -25,7 +25,7 @@ If you want to run this, use the JAR in the release:
 5. If it is the first time running it, follow this: Get it to make the config by running it.
 7. Run the jar
 
-If you want to build, read the [How to make file, this is the link to it](how2make.txt)
+If you want to build, read the [How to make file, this is the link to it](appdocs/how2make.txt)
 
 
 ##### Why do I see MXPSQL.BKMTMEdit.utils and MXPSQL.BKMTMEdit.widgets packages
@@ -43,3 +43,7 @@ Find the code that will enable the platform theme and uncomment it. Build the pr
 ##### Why is there Jetty and why is the variable called MJFX eventhough the editor is called TxEditor
 
 The editor component originally used is [Monaco-Editor](https://github.com/microsoft/monaco-editor "The editor that powers VS-Code (Visual Studio)") and it uses service workers and you know they need to come from https or http, so Jetty for it. But there is a problem with the webview and I ended up replacing it with [RSyntaxTextArea](https://github.com/bobbylight/RSyntaxTextArea "Nice component btw"). Jetty and MJFX is the remains of that.
+
+##### Why is there MPL-2.0 headers
+
+Because I use rhino engine and it's licensed under the MPL-2.0

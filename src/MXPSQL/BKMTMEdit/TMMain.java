@@ -168,6 +168,10 @@ public class TMMain {
 		ps.println("# Example: preloadbshmacros=s1.bsh#s2.bsh");
 		ps.println("# The macro interpreter has the Editor variable, use that variable to set and get text.");
 		ps.println("preloadbshmacros=");
+		ps.println("# Rhino Javascript Macros");
+		ps.println("# Example: preloadrjsmacros=s1.js#s2.js#s3.js");
+		ps.println("# The macro interpreter has the Editor variable, the same with the beanshell macro api");
+		ps.println("preloadrjsmacros=");
 		ps.println("# Macro Security");
 		ps.println("remindmeaboutmacrosafety=true");
 		
@@ -329,8 +333,32 @@ public class TMMain {
 								StaticStorageProperties.bshMacros.put(ff.getCanonicalPath(), code);
 							}
 							else {
-								StaticStorageProperties.logger.error("A macro check failed! Press alt+tab to see a dialog box");
-								JOptionPane.showMessageDialog(null, "Failed to read macro " + bshMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								StaticStorageProperties.logger.error("A beanshell macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read beanshell macro " + bshMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
+						}
+					}
+				}
+			}
+			
+			{
+				String rjsMacroNameRaw = StaticStorageProperties.config.getString("preloadrjsmacros");
+				if(rjsMacroNameRaw != null && !rjsMacroNameRaw.isEmpty() && !rjsMacroNameRaw.isBlank()) {
+					String[] rjsMacroName = rjsMacroNameRaw.split("#");
+					if(rjsMacroName.length > 0) {				
+						for(int i = 0; i < rjsMacroName.length; i++) {
+							File ff = new File(rjsMacroName[i]);
+							if(ff.isFile()) {
+								String code = "";
+							
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+							
+								StaticStorageProperties.rhinoJSMacros.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A javascript macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read javascript macro " + rjsMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
 								System.exit(StaticStorageProperties.badExit);
 							}
 						}

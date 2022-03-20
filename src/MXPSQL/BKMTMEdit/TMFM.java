@@ -42,13 +42,15 @@ import javafx.embed.swing.*;
 import javafx.scene.control.*;
 import java.awt.datatransfer.*;
 import MXPSQL.BKMTMEdit.utils.*;
+import org.mozilla.javascript.*;
 import MXPSQL.BKMTMEdit.widgets.*;
 import javafx.application.Platform;
+import MXPSQL.BKMTMEdit.reusable.*;
 import org.apache.commons.io.FilenameUtils;
 import java.util.concurrent.CountDownLatch;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;
+// import MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;
 
 
 public class TMFM extends JFrame {
@@ -769,7 +771,7 @@ public class TMFM extends JFrame {
 						}
                 		
                 		pluginmi.addActionListener((e) -> {
-                			Interpreter i = new Interpreter();
+                			bsh.Interpreter i = new bsh.Interpreter();
                 			
                 			try {
                 				// System.out.println(plugin.getValue());
@@ -803,14 +805,17 @@ public class TMFM extends JFrame {
                 	JMenuItem runtermmi = new JMenuItem("add terminal");
                 	JMenuItem browsermi = new JMenuItem("Open url in web browser");
                 	JMenuItem bshmacrosmi = new JMenuItem("Run beanshell macros");
+                	JMenuItem rjsmacrosmi = new JMenuItem("Run rhino javascript macros");
                 	JMenuItem opendefaulteditormi = new JMenuItem("Open in default editor");
                 	JMenuItem openindefaultmi = new JMenuItem("Open file in default program");
                 	
                 	
                 	runtermmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
                 	bshmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+                	rjsmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
                 	runtermmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Term.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	bshmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	rjsmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	
                 	runtermmi.addActionListener(new ActionListener() {
 
@@ -846,6 +851,16 @@ public class TMFM extends JFrame {
 						public void actionPerformed(ActionEvent e) {
 							// TODO Auto-generated method stub
 							runUserBshMacro();
+						}
+                		
+                	});
+                	
+                	rjsmacrosmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							runUserRhinoJSMacro();
 						}
                 		
                 	});
@@ -906,7 +921,9 @@ public class TMFM extends JFrame {
                 	
                 	runm.add(runtermmi);
                 	runm.add(browsermi);
+                	runm.addSeparator();
                 	runm.add(bshmacrosmi);
+                	runm.add(rjsmacrosmi);
                 	runm.addSeparator();
                 	runm.add(opendefaulteditormi);
                 	runm.add(openindefaultmi);
@@ -1048,15 +1065,7 @@ public class TMFM extends JFrame {
 			        			    	return;
 			        			    }
 			        			    
-			        			    String filename;
-									try {
-										filename = JOptionPane.showInputDialog(dis, "What do you want for your renamed thing? \nIt is from " + ((File) objec) + " to ...", FilenameUtils.getBaseName(((File)objec).getCanonicalPath()));
-									} catch (IOException e1) {
-										// TODO Auto-generated catch block
-										e1.printStackTrace();
-										JOptionPane.showMessageDialog(dis, e);
-										return;
-									}
+			        			    String filename = JOptionPane.showInputDialog(dis, "What do you want for your renamed thing? \nIt is from " + ((File) objec) + " to ...", ((File) objec).getName());
 			        			    
 			        			    if(filename != null) {
 		        			    		File f = (File) objec;
@@ -2063,10 +2072,13 @@ public class TMFM extends JFrame {
 	}
 	
 	public void runUserBshMacro() {
-		AskInputDialog bshd = new AskInputDialog(dis, "Macros", StaticStorageProperties.bshMacros);
+		AskInputDialog bshd = new AskInputDialog(dis, "Beanshell Macros", StaticStorageProperties.bshMacros);
 		bshd.setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
 		
 		String input = bshd.getInput();
+		
+		if(input == null)
+			return;
 		
 		int r = JOptionPane.YES_OPTION;
 		
@@ -2074,12 +2086,11 @@ public class TMFM extends JFrame {
 			r = JOptionPane.showConfirmDialog(dis, "Are you sure about running that? It may be dangerous. \nIt can wipe your drive, \nsend your files somewhere or \nsend your computer's soul to someone's dining hall. \nWho knows, your computer may have you as it's dinner if you run the macro. \nThe point is not to trust any macros from the internet unless you checked it yourself \n(the can delete your drive and ruin your life).", "Watch Out!", JOptionPane.YES_NO_OPTION);
 		
 		if(r == JOptionPane.YES_OPTION)
-			if(input != null)
-				runBshMacro(input);
+			runBshMacro(input);
 	}
 	
 	public void runBshMacro(String macro) {
-		Interpreter i = new Interpreter();
+		bsh.Interpreter i = new bsh.Interpreter();
 		StaticStorageProperties.logger.info("Run a beanshell macro.");
 		
 		if(bshmacroworker != null) {
@@ -2094,7 +2105,7 @@ public class TMFM extends JFrame {
 			String oldtext = mjfx.getText();
 			
 			Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
-			StaticStorageProperties.logger.info("Running macros");
+			StaticStorageProperties.logger.info("Running bsh macros");
 			
 			bshmacroworker = new SwingWorker<Void, Void>() {
 				
@@ -2103,6 +2114,11 @@ public class TMFM extends JFrame {
 					// TODO Auto-generated method stub
 					
 					try {
+						i.set("bshi", i);
+						i.set("Macro", macro);
+						i.set("Out", System.out);
+						i.set("Err", System.err);
+						
 						i.set("Editor", mjfx);
 						i.set("CaretPosition", mjfx.area.getCaretPosition());
 						i.set("CurrentText", mjfx.getText());
@@ -2116,12 +2132,70 @@ public class TMFM extends JFrame {
 					}
 					
 					Platform.runLater(() -> pbar.setProgress(0));
+					
+					StaticStorageProperties.logger.info("Done running bsh macros");
 					return null;
 				}
 				
 			};
 			
 			bshmacroworker.execute();
+		}
+	}
+	
+	public void runUserRhinoJSMacro() {
+		AskInputDialog rjsd = new AskInputDialog(dis, "Rhino JS Macros", StaticStorageProperties.rhinoJSMacros);
+		rjsd.setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
+		
+		String input = rjsd.getInput();
+		
+		if(input == null)
+			return;
+		
+		int r = JOptionPane.YES_OPTION;
+		
+		if(StaticStorageProperties.remimdMeAboutMacroSafety)
+			r = JOptionPane.showConfirmDialog(dis, "Are you sure about running that? It may be dangerous. \nIt can wipe your drive, \nsend your files somewhere or \nsend your computer's soul to someone's dining hall. \nWho knows, your computer may have you as it's dinner if you run the macro. \nThe point is not to trust any macros from the internet unless you checked it yourself \n(the can delete your drive and ruin your life).", "Watch Out!", JOptionPane.YES_NO_OPTION);
+		
+		if(r == JOptionPane.YES_OPTION)
+			runRhinoJSMacro(input);
+	}
+	
+	public void runRhinoJSMacro(String code) {
+		Context ctx = new ContextFactory().enterContext();
+		StaticStorageProperties.logger.info("Run a rhino js macros");
+		
+		if(bshmacroworker != null) {
+			bshmacroworker.cancel(true);
+		}
+		
+		bshmacroworker = null;
+		Platform.runLater(() -> pbar.setProgress(0));
+		
+		if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
+			TxEditor mjfx = ((TxEditor) tabbedEditor.getSelectedComponent());
+			String oldtext = mjfx.getText();
+			
+			Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
+			StaticStorageProperties.logger.info("Running rhino js macros");
+			
+			Scriptable scope = ctx.initStandardObjects();
+			
+			ScriptableObject.putProperty(scope, "Rhino", Context.javaToJS(ctx, scope));
+			ScriptableObject.putProperty(scope, "Out", Context.javaToJS(System.out, scope));
+			ScriptableObject.putProperty(scope, "Err", Context.javaToJS(System.err, scope));
+			
+			ScriptableObject.putProperty(scope, "CurrentText", Context.javaToJS(oldtext, scope));
+			ScriptableObject.putProperty(scope, "CaretPosition", Context.javaToJS(mjfx.area.getCaretPosition(), scope));
+			ScriptableObject.putProperty(scope, "Editor", Context.javaToJS(mjfx, scope));
+			
+			ScriptableObject.putProperty(scope, "Macro", Context.javaToJS(code, scope)); 
+			
+			ctx.evaluateString(scope, code, "script.jsn", 5, null);
+			StaticStorageProperties.logger.info("Done running rhino js macros");
+			
+			Platform.runLater(() -> pbar.setProgress(0));
+			
 		}
 	}
 	
