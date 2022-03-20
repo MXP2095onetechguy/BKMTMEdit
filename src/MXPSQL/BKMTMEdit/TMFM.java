@@ -2197,6 +2197,8 @@ public class TMFM extends JFrame {
 			Platform.runLater(() -> pbar.setProgress(0));
 			
 		}
+		
+		Context.exit();
 	}
 	
 	

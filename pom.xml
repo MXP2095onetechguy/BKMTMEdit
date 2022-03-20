@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>MXPSQL</groupId>
   <artifactId>BKMTMEdit</artifactId>
-  <version>1.00</version>
+  <version>1.1.0</version>
   
   <properties>
   	<mainclass>TMMain</mainclass>
