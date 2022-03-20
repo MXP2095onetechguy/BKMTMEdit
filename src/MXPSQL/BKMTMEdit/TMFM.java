@@ -86,12 +86,14 @@ public class TMFM extends JFrame {
     
     JTree ftree;
     DefaultTreeModel fmodel = new DefaultTreeModel(FileTree.scan(new File(StaticStorageProperties.cwd)));
-    SwingWorker<Void, Object> filechangedworker;
-    SwingWorker<Void, Void> bshmacroworker;
     FTreeWorker ftreeworker;
     
-    JMenu jarpluginm;
-    JMenu bshpluginm;
+    SwingWorker<Void, Object> filechangedworker;
+    
+    SwingWorker<Void, Void> bshmacroworker;
+    
+    protected JMenu jarpluginm;
+    protected JMenu bshpluginm;
 	
 	
 	private void initUI() {
@@ -1381,7 +1383,7 @@ public class TMFM extends JFrame {
 				ftreepanel.add(refreshftree, BorderLayout.NORTH);
 				ftreepanel.add(new JScrollPane(ftree));
 				
-				docPane.add(ftreepanel, "File system");
+				docPane.add(ftreepanel, "Filesystem Manager");
 			}
 			
 			try {
