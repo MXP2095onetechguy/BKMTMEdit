@@ -18,12 +18,12 @@ Learn it yourself, I do not have the time to create a complete documentation yet
 
 > If you want to run this, use the JAR in the release:
 
-> 1. Go to the release
-2. Download the latest version
-3. Download the JAR
-4. Open the folder where you download the JAR
-5. If it is the first time running it, follow this: Get it to make the config by running it.
-7. Run the jar
+>> 1. Go to the release
+>> 2. Download the latest version
+>> 3. Download the JAR
+>> 4. Open the folder where you download the JAR
+>> 5. If it is the first time running it, follow this: Get it to make the config by running it.
+>> 7. Run the jar
 
 > If you want to build, read the [How to make file, this is the link to it](appdocs/how2make.txt)
 
