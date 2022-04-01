@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.utils;
+package MXPSQL.BKMTMEdit.reusable.widgets;
 
 /**
 MIT License
@@ -24,43 +24,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-import org.apache.commons.lang3.tuple.Pair;
+import java.awt.*;
+import javax.swing.*;
+import org.fife.rsta.ui.*;
+import org.fife.ui.rtextarea.*;
+import org.fife.ui.rsyntaxtextarea.*;
 
-public class FirstElementPair<L, R> extends Pair<L, R> {
+public class TxViewer extends JInternalFrame {
+
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	L key;
-	R value;
 	
-	public FirstElementPair(L key, R value){
-		this.key = key;
-		this.value = value;
-	}
+	public RSyntaxTextArea area = new RSyntaxTextArea(20, 60);
 	
-	@Override
-	public R setValue(R value) {
-		// TODO Auto-generated method stub
-		this.value = value;
-		return null;
-	}
-
-	@Override
-	public L getLeft() {
-		// TODO Auto-generated method stub
-		return key;
-	}
-
-	@Override
-	public R getRight() {
-		// TODO Auto-generated method stub
-		return value;
+	public TxViewer() {
+		setLayout(new BorderLayout());
+		
+		add(area);
+		
+		area.setEditable(false);
+		
+		area.setCodeFoldingEnabled(true);
+		area.setMarkOccurrences(true);
+		
+		CollapsibleSectionPanel csp = new CollapsibleSectionPanel();
+		csp.add(new RTextScrollPane(area));
+		add(new JLabel("Text viewer"), BorderLayout.NORTH);
+		add(csp, BorderLayout.CENTER);
 	}
 	
-	@Override
-	public String toString() {
-		return key.toString();
+	public void setText(String text) {
+		area.setText(text);
 	}
-
+	
+	public String getText() {
+		return area.getText();
+	}
+	
+	public void setSyntaxEditingStyle(String style) {
+		area.setSyntaxEditingStyle(style);
+	}
 }

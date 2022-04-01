@@ -35,9 +35,9 @@ import org.eclipse.jetty.server.Server;
 import javax.swing.filechooser.FileFilter;
 import org.apache.commons.configuration2.*;
 import com.github.zafarkhaja.semver.Version;
+import MXPSQL.BKMTMEdit.reusable.filefilters.*;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class StaticStorageProperties {
 	// runtime
@@ -52,16 +52,17 @@ public class StaticStorageProperties {
 	public static final String defaultTheme = "metal";
 	public static String theme = defaultTheme;
 	public static File synthloc = null;
+	public static File intellijson = null;
 	
 	// editors
 	public static Map<String, String> bshMacros = new HashMap<String, String>();
 	public static Map<String, String> rhinoJSMacros = new HashMap<String, String>();
 	public static boolean remimdMeAboutMacroSafety = true;
-	public static File startingFile = null;
+	public static List<File> startingFiles = null;
 	public static FileFilter[] filt = new FileFilter[] {
-			new FileNameExtensionFilter("Text Document", "txt"),
-			new FileNameExtensionFilter("CSV Document", "csv"),
-			new FileNameExtensionFilter("HTML Document", "html", "htm")
+			new TxtSaveFilters(),
+			new CSVSaveFilters(),
+			new HTMLSaveFilters()
 	};
 	public static String home_page = "https://google.com";
 	public static HashMap<String, ImmutablePair<String[], String>> syntaxset = new HashMap<String, ImmutablePair<String[], String>>();

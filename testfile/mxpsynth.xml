@@ -4,21 +4,27 @@
 <!-- The original file is called MXPSynth.xml -->
 <!-- MXPSynth (C) 2022 by MXPSQL is marked with CC0 1.0. To view a copy of this license, visit http://creativecommons.org/publicdomain/zero/1.0 -->
 <synth>
-  <!-- Common -->
-      <object class="javax.swing.plaf.ColorUIResource" id="fg"><int>0</int><int>0</int><int>0</int></object>
-    <object class="javax.swing.plaf.ColorUIResource" id="bg"><int>255</int><int>255</int><int>255</int></object>
-    <object class="javax.swing.plaf.ColorUIResource" id="focus"><int>0</int><int>255</int><int>0</int></object>
-  <style id="common">
-      <opaque value="false"/>
-    <font name="Lucida Sans Unicode" size="12"/>
+ <!-- Style that all regions will use -->
+    
+  <style id="buttonStyle">
+  	<!-- Shift the text one pixel when pressed -->
+    <property key="Button.textShiftOffset" type="integer" value="1"/>
+	  <!-- set size of buttons -->
+	  <insets top="15" left="20" bottom="15" right="20"/>
     <state>
-        <color type="FOREGROUND" idref="fg"/>
-        <color type="TEXT_BACKGROUND" idref="bg"/>
-        <!-- The color used in highlighting components. -->
-        <color type="FOCUS" idref="focus"/>
+    	<opaque value="TRUE"/>
+	    <font name="Dialog" size="16"/>
+	    <color value="WHITE" type="BACKGROUND" />
+	    <color type="TEXT_FOREGROUND" value="#FFFFFF"/>
     </state>
+              
+	  <state value="PRESSED">
+	  	<color value="GREEN" type="BACKGROUND" />
+	  </state>
+            
+    <state value="MOUSE_OVER">
+    	<color value="RED" type="BACKGROUND" />
+	  </state>
   </style>
-  <bind style="common" type="region" key=".*"/>
-  
-  <!-- widget specific -->
+  <bind style="buttonStyle" type="region" key="Button"/>
 </synth>

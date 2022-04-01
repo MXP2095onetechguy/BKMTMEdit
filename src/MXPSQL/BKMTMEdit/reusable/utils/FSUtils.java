@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.utils;
+package MXPSQL.BKMTMEdit.reusable.utils;
 
 /**
 MIT License
@@ -24,68 +24,48 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-import java.net.URL;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.ServerSocket;
-import java.net.URISyntaxException;
+import java.io.PrintStream;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 
-public class NetUtil {
-	private NetUtil() {
-		;
-	}
-	
-	public static boolean isValidUrl(String url) {
-		try {
-			new URL(url).toURI();
-			return true;
-		}
-		catch(URISyntaxException | MalformedURLException e) {
-			return false;
+public class FSUtils {
+	public static void printstreamTextToFile(String text, PrintStream ps) throws IOException {
+		String[] lines = text.split(System.lineSeparator());
+
+		for(int i = 0; i < lines.length; i++){
+			ps.println(lines[i]);
 		}
 	}
-	
-	public static boolean isPortValid(int port) {
-		boolean yes = true;
+
+	public static void saveTextToFile(String text, File paf) throws IOException {
+		DataOutputStream d = new DataOutputStream(new FileOutputStream(paf));
 		
-		if(port > 65535) {
-			yes = false;
-		}
-		
-		if(port < 0) {
-			yes = false;
-		}
-		
-		return yes;
+		d.writeBytes(text);
+		d.close();
 	}
 	
-	public static int getAvailablePort(int minPort, int maxPort) throws IOException {
-		int cport = minPort;
+	public static String getTextFromFile(File f) throws FileNotFoundException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		PrintStream ps = new PrintStream(baos);
 		
-		if(!isPortValid(cport)) {
-			throw new IOException("Invalid port!");
+		Scanner fscan = new Scanner(f);
+		
+		while(fscan.hasNextLine()) {
+			ps.println(fscan.nextLine());
+			// System.out.println(baos.toString());
 		}
 		
-		ServerSocket sock = null;
+		fscan.close();
 		
-		try { 
-		    sock = new ServerSocket(minPort); 
-		} catch( IOException ioe ){
-		   for( int i = minPort; i < maxPort; i++ ) try {
-		        sock = new ServerSocket( i );
-		    } catch( IOException ioe2 ){}
-		}
+		return baos.toString();
+	}
+	
+	private FSUtils() {
 		
-		if(sock == null) {
-			cport = -1;
-		}
-		else {
-			if(!sock.isClosed())
-				sock.close();
-			
-			sock = null;
-		}
-		
-		return cport;
 	}
 }

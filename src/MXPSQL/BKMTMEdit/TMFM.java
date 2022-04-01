@@ -38,19 +38,22 @@ import java.awt.event.*;
 import javax.swing.tree.*;
 import java.util.Optional;
 import javax.swing.event.*;
+import javax.swing.border.*;
 import javafx.embed.swing.*;
 import javafx.scene.control.*;
 import java.awt.datatransfer.*;
-import MXPSQL.BKMTMEdit.utils.*;
 import org.mozilla.javascript.*;
-import MXPSQL.BKMTMEdit.widgets.*;
 import javafx.application.Platform;
 import MXPSQL.BKMTMEdit.reusable.*;
+import MXPSQL.BKMTMEdit.reusable.utils.*;
+import MXPSQL.BKMTMEdit.reusable.widgets.*;
 import org.apache.commons.io.FilenameUtils;
 import java.util.concurrent.CountDownLatch;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+
 // import MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;
+import MXPSQL.BKMTMEdit.reusable.widgets.tabs.JClosableTabbedPane;
 
 
 public class TMFM extends JFrame {
@@ -65,9 +68,10 @@ public class TMFM extends JFrame {
 	
 	
 	public JSplitPane jsplit;
-	public JTabbedPane tabbedEditor = new JTabbedPane();
+	public JClosableTabbedPane tabbedEditor = new JClosableTabbedPane();
 	
 	public JLabel filenameLabel;
+	public JLabel caretLabel;
 	
 	
 	public ProgressBar pbar;
@@ -233,8 +237,8 @@ public class TMFM extends JFrame {
 					public void actionPerformed(ActionEvent e) {
 						// TODO Auto-generated method stub
 						try {
-							closeCurrentTab();
-						} catch (InterruptedException e1) {
+							closeCurrentTab(true);
+						} catch (InterruptedException | IOException e1) {
 							// TODO Auto-generated catch block
 						}
 					}
@@ -577,8 +581,8 @@ public class TMFM extends JFrame {
 							public void actionPerformed(ActionEvent e) {
 								// TODO Auto-generated method stub
 								try {
-									closeCurrentTab();
-								} catch (InterruptedException e1) {
+									closeCurrentTab(true);
+								} catch (InterruptedException | IOException e1) {
 									// TODO Auto-generated catch block
 								}
 							}
@@ -954,6 +958,13 @@ public class TMFM extends JFrame {
 		}
 		
 		{	
+			GridBagLayout gbl = new GridBagLayout();
+			GridBagConstraints gbc = new GridBagConstraints();
+	        gbc.gridx = 0;
+	        gbc.gridy = 0;
+	        gbc.weightx = gbc.weighty = 1.0;
+	        gbc.fill = GridBagConstraints.BOTH;
+			
 			JPanel statusPanel = new JPanel(new BorderLayout());
 			
 			JFXPanel javafxPanel = new JFXPanel();
@@ -961,11 +972,12 @@ public class TMFM extends JFrame {
 			Scene scene = new Scene(pbar);
 			javafxPanel.setScene(scene);
 			javafxPanel.setToolTipText("U totally not idot.");			
-			statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.PAGE_AXIS));
-			statusPanel.add(javafxPanel, BorderLayout.NORTH);
+			statusPanel.setLayout(gbl);
+			statusPanel.add(javafxPanel, gbc);
 			new DropTarget(javafxPanel, new FileDND());
 			
 			JToolBar statusBar = new JToolBar();
+			statusBar.setBorder((Border) new BevelBorder(BevelBorder.LOWERED));
 			statusBar.setFloatable(false);
 			
 	        JLabel readylabel=new JLabel(StaticStorageProperties.baseTitle);
@@ -973,13 +985,19 @@ public class TMFM extends JFrame {
 	        new DropTarget(readylabel, new FileDND());
 	        filenameLabel = new JLabel("");
 	        filenameLabel.setFont(new Font("Calibri",Font.PLAIN,15));
+	        caretLabel = new JLabel("");
+	        caretLabel.setFont(new Font("Calibri",Font.PLAIN,15));
 	        new DropTarget(filenameLabel, new FileDND());
 	        statusBar.add(readylabel);
-	        statusBar.add(new JLabel("                          "));
+	        // statusBar.add(new JLabel("                          "));
+	        statusBar.addSeparator();
 	        statusBar.add(filenameLabel);
+	        statusBar.addSeparator();
+	        statusBar.add(caretLabel);
 	        new DropTarget(statusBar, new FileDND());
-
-			statusPanel.add(statusBar, BorderLayout.CENTER);
+	        
+	        gbc.gridy = 1;
+			statusPanel.add(statusBar, gbc);
 			new DropTarget(statusPanel, new FileDND());
 			
 			contentPane.add(statusPanel, BorderLayout.SOUTH);
@@ -1071,7 +1089,7 @@ public class TMFM extends JFrame {
 			        			    
 			        			    if(filename != null) {
 		        			    		File f = (File) objec;
-		        			    		File f2 = Paths.get(StaticStorageProperties.cwdPath.toFile().toURI()).resolve(filename).toFile();
+		        			    		File f2 = Paths.get(StaticStorageProperties.cwdPath.toFile().toURI()).resolve(f.getParent().toString()).resolve(filename).toFile();
 		        			    		
 										if(!f.renameTo(f2)) {
 											JOptionPane.showMessageDialog(dis, "There seems to be a problem renaming the thing.", "No", JOptionPane.ERROR_MESSAGE);
@@ -1443,16 +1461,61 @@ public class TMFM extends JFrame {
 			
 			setContentPane(contentPane);
 			
-			if(StaticStorageProperties.startingFile == null) {
-				addDefaultEditor();
+			if(StaticStorageProperties.startingFiles != null) {
+				if(StaticStorageProperties.startingFiles.isEmpty()) {
+					addDefaultEditor();
+				}
+				else {
+					try {
+						for(int i = 0; i < StaticStorageProperties.startingFiles.size(); i++) {
+							open_file_from_File(StaticStorageProperties.startingFiles.get(i));
+						}
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
 			}
 			else {
+				addDefaultEditor();
+			}
+			
+			StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+			if(StaticStorageProperties.theme.equals("platform"))
+				tabbedEditor.offsetDim = new int[] {5, 0};
+			tabbedEditor.tocl = (intd) -> {
 				try {
-					open_file_from_File(StaticStorageProperties.startingFile);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					closeCurrentTab(false);
+					return true;
 				}
+				catch(IOException ioe) {
+					return false;
+				}
+				catch(InterruptedException ite) {
+					return false;
+				}
+			};
+			
+			{
+				java.awt.MenuItem aboutmi = new java.awt.MenuItem("About");
+				java.awt.MenuItem openmi = new java.awt.MenuItem("Open");
+				java.awt.MenuItem exitmi = new java.awt.MenuItem("Exit");
+				
+				aboutmi.addActionListener((e) -> {
+					showAbout();
+				});
+				
+				openmi.addActionListener((e) -> {
+					open_file();
+				});
+				
+				exitmi.addActionListener((e) -> dispatchEvent(new WindowEvent(dis, WindowEvent.WINDOW_CLOSING)));
+				
+				StaticWidget.traypop.add(openmi);
+				StaticWidget.traypop.addSeparator();
+				StaticWidget.traypop.add(aboutmi);
+				StaticWidget.traypop.addSeparator();
+				StaticWidget.traypop.add(exitmi);
 			}
 		}
 	}
@@ -1577,6 +1640,84 @@ public class TMFM extends JFrame {
 		
 	};
 	
+	class TextCaretListener implements CaretListener{
+
+		@Override
+		public void caretUpdate(CaretEvent e) {
+			// TODO Auto-generated method stub
+			
+			if(!(tabbedEditor.getSelectedComponent() instanceof TxEditor))
+				return;
+			
+			TxEditor mjfx = (TxEditor) tabbedEditor.getSelectedComponent();
+			
+            int linenum = -1;
+            int columnnum = -1;
+            
+            try {
+                // First we find the position of the caret. This is the number of where the caret is in relation to the start of the JTextArea
+                // in the upper left corner. We use this position to find offset values (eg what line we are on for the given position as well as
+                // what position that line starts on.
+                int caretpos = mjfx.area.getCaretPosition();
+                linenum = mjfx.area.getLineOfOffset(caretpos);
+
+                // We subtract the offset of where our line starts from the overall caret position.
+                // So lets say that we are on line 5 and that line starts at caret position 100, if our caret position is currently 106
+                // we know that we must be on column 6 of line 5.
+                columnnum = caretpos - mjfx.area.getLineStartOffset(linenum);
+
+                // We have to add one here because line numbers start at 0 for getLineOfOffset and we want it to start at 1 for display.
+                linenum += 1;
+            }
+            catch(Exception ex) { }
+            
+            caretLabel.setText("Column: " + columnnum + " Line row: " + linenum);
+		}
+		
+	};
+	
+    class TabChanged implements ChangeListener
+    {
+        @Override
+        public void stateChanged(ChangeEvent evt)
+        {
+            if(tabbedEditor.getTabCount()>0)
+            {
+            	int selindex = tabbedEditor.getSelectedIndex();
+            	
+            	Component comp = tabbedEditor.getSelectedComponent();
+            	if(comp instanceof TxEditor) {
+            		TxEditor jfxcomp = (TxEditor) comp;
+            		if(!jfxcomp.filePath.isBlank() && !jfxcomp.filePath.isEmpty())
+            			filenameLabel.setText(new File(jfxcomp.filePath).getName());
+            		else
+            			filenameLabel.setText(jfxcomp.docName);
+            	}
+            	else if(comp instanceof SwingWebkitWebBrowser){
+            		filenameLabel.setText("A web browser lol/");
+            	}
+            	else if(comp instanceof TerminalWidget) {
+            		filenameLabel.setText("A Terminal lol/");
+            	}
+            	else if(comp instanceof TxViewer) {
+            		filenameLabel.setText("A viewer viewing " + tabbedEditor.getTitleAt(selindex));
+            	}
+            	else {
+            		filenameLabel.setText("IDK/");
+            	}
+            	
+            	filesHoldList.setSelectedIndex(selindex);
+            }
+            else {
+            	Random rand = new Random();
+            	int choose = rand.nextInt(TexyHolder.nololmsgs.length);
+            	filenameLabel.setText(TexyHolder.nololmsgs[choose] + "/");
+            }
+            
+            refreshList();
+        }
+    }
+	
 	class FileDND implements DropTargetListener{
 
 		@Override
@@ -1609,6 +1750,9 @@ public class TMFM extends JFrame {
 			dtde.acceptDrop(DnDConstants.ACTION_COPY);
 			
 			try {
+				if(!(dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor) instanceof java.util.List<?>))
+					return;
+				
 				@SuppressWarnings("unchecked")
 				java.util.List<File> droppedFiles = (java.util.List<File>)
 	                    dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
@@ -1626,7 +1770,7 @@ public class TMFM extends JFrame {
 		
 	};
 	
-	public void closeCurrentTab() throws InterruptedException {
+	public void closeCurrentTab(boolean automaticallyDispose) throws InterruptedException, IOException {
 		int selindex = tabbedEditor.getSelectedIndex();
 		if(selindex != -1) {
 			if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
@@ -1656,14 +1800,14 @@ public class TMFM extends JFrame {
 						}
 					}
 					else if(opt == JOptionPane.CANCEL_OPTION) {
-						throw new InterruptedException("no");
+						throw new IOException("no");
 					}
 				}
 				
-				tabbedEditor.remove(selindex);
+				if(automaticallyDispose) tabbedEditor.remove(selindex);
 			}
 			else {
-				tabbedEditor.remove(selindex);
+				if(automaticallyDispose) tabbedEditor.remove(selindex);
 			}
 		}
 		
@@ -1673,10 +1817,13 @@ public class TMFM extends JFrame {
 	boolean closeAllTab() {
 		while(tabbedEditor.getTabCount() > 0) {
 			try {
-				closeCurrentTab();
+				closeCurrentTab(true);
 			}
 			catch(InterruptedException ie) {
 				return false;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		
@@ -1695,9 +1842,9 @@ public class TMFM extends JFrame {
 	public void addWebBrowser() {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
 		Platform.runLater(() -> {
-			WebkitWebBrowser webkit = new WebkitWebBrowser(StaticStorageProperties.home_page);
-			new DropTarget(webkit.webb, new FileDND());
-			tabbedEditor.add(webkit, "webdocument " + webdoccount);
+			SwingWebkitWebBrowser webkit = new SwingWebkitWebBrowser(StaticStorageProperties.home_page);
+			new DropTarget(webkit, new FileDND());
+			tabbedEditor.addTab(webkit, "webdocument " + webdoccount);
 			webdoccount += 1;
 			refreshList();
 			pbar.setProgress(0);
@@ -1707,10 +1854,10 @@ public class TMFM extends JFrame {
 	public void addTerminal() {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
 		Platform.runLater(() -> {
+			JOptionPane.showMessageDialog(dis, "Just no, it's bad and does not work properly", "NO, it bad", JOptionPane.WARNING_MESSAGE);
 			TerminalWidget termw = new TerminalWidget();
-			
 			new DropTarget(termw, new FileDND());
-			tabbedEditor.add(termw, "term " + termsessioncount);
+			tabbedEditor.addTab(termw, "term " + termsessioncount);
 			termsessioncount += 1;
 			
 			refreshList();
@@ -1719,34 +1866,44 @@ public class TMFM extends JFrame {
 	}
 	
 	public void addDefaultEditor() {
-		addEditor("Text document " + textdoccount, () -> {
-			latestMJFX.docName = "Text document " + textdoccount + "/";
-			filenameLabel.setText(latestMJFX.docName);
-			latestMJFX.area.getDocument().addDocumentListener(new TextListener());
-			
-			textdoccount++;
-		});
+		addEditor("Text document " + textdoccount);
+		latestMJFX.docName = "Text document " + textdoccount + "/";
+		filenameLabel.setText(latestMJFX.docName);
+		latestMJFX.area.getDocument().addDocumentListener(new TextListener());
+		
+		textdoccount++;
 	}
 	
-	public void addEditor(String title,Runnable run) {
+	public TxEditor addEditor(String title) {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
-		Platform.runLater(() -> {
-			TxEditor mjfx;
-			mjfx = new TxEditor(dis);
-			latestMJFX = mjfx;
-			tabbedEditor.add(mjfx, title);
-			new DropTarget(mjfx, new FileDND());
-			new DropTarget(mjfx.area, new FileDND());
-			pbar.setProgress(0);
-			int index=tabbedEditor.getTabCount()-1;
-			tabbedEditor.setSelectedIndex(index);
+		TxEditor mjfx;
+		
+		ArrayList<String> langs = new ArrayList<String>();
+		langs.add("default*");
+		langs.add(SyntaxConstants.SYNTAX_STYLE_NONE);
+		for(Map.Entry<String, ImmutablePair<String[], String>> entry : StaticStorageProperties.syntaxset.entrySet()) {
+			ImmutablePair<String[], String> syntset = entry.getValue();
+			String syntax = syntset.getValue();
 			
-			// filenameLabel.setText(title);
-			
-			refreshList();
-			
-			run.run();
-		});
+			langs.add(syntax);
+		}
+		
+		mjfx = new TxEditor(dis, langs);
+		mjfx.defaultLang = langs.get(1);
+		mjfx.area.addCaretListener(new TextCaretListener());
+		latestMJFX = mjfx;
+		tabbedEditor.addTab(mjfx, title);
+		new DropTarget(mjfx, new FileDND());
+		new DropTarget(mjfx.area, new FileDND());
+		Platform.runLater(() -> pbar.setProgress(0));
+		int index=tabbedEditor.getTabCount()-1;
+		tabbedEditor.setSelectedIndex(index);
+		
+		// filenameLabel.setText(title);
+		
+		refreshList();
+		
+		return mjfx;
 	}
 	
 	
@@ -1766,22 +1923,10 @@ public class TMFM extends JFrame {
 				cli.setVisible(true);
 				Optional<String> out = cli.get();
 				
-				CountDownLatch cdl = new CountDownLatch(1);
-				
 				filenameLabel.setText("Web Browser");
 				
 				
-				addEditor(cli.URL, () -> {
-					cdl.countDown();
-				});
-				
-				try {
-					cdl.await();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return null;
-				}
+				addEditor(cli.URL);
 				
 				latestMJFX.setText(out.get());
 				latestMJFX.area.getDocument().addDocumentListener(new TextListener());
@@ -1843,12 +1988,7 @@ public class TMFM extends JFrame {
 	}
 	
 	public void open_file_from_File(File f) throws InterruptedException {
-		CountDownLatch cdl = new CountDownLatch(1);
-		addEditor(f.toPath().getFileName().toString(), () -> {
-			cdl.countDown();
-		});
-		
-		cdl.await();
+		addEditor(f.toPath().getFileName().toString());
 		
 		Platform.runLater(() -> {
 			
@@ -1857,15 +1997,20 @@ public class TMFM extends JFrame {
 				latestMJFX.area.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
 				
 				for(Map.Entry<String, ImmutablePair<String[], String>> entry : StaticStorageProperties.syntaxset.entrySet()) {
-					ImmutablePair<String[], String> syntset = entry.getValue();
+					ImmutablePair<String[], String> syntset= entry.getValue();
 					String[] ext = syntset.getLeft();
+					
+					if(ext == null)
+						continue;
 					
 					
 					for(String i : ext) {
 						String fe = FilenameUtils.getExtension(f.toPath().toString());
+						
 						if(fe.equals(i)) {
 							// System.out.println(fe + " => " + i);
 							latestMJFX.area.setSyntaxEditingStyle(syntset.getRight());
+							latestMJFX.defaultLang = syntset.getRight();
 							break;
 						}
 					}
@@ -1934,6 +2079,8 @@ public class TMFM extends JFrame {
 					ImmutablePair<String[], String> syntset = entry.getValue();
 					String[] ext = syntset.getLeft();
 					
+					if(ext == null)
+						continue;
 					
 					for(String i : ext) {
 						String fe = FilenameUtils.getExtension(f.toPath().toString());
@@ -1945,7 +2092,7 @@ public class TMFM extends JFrame {
 					}
 				}
 				
-				tabbedEditor.add(viewer, f.toPath().getFileName().toString());
+				tabbedEditor.addTab(viewer, f.toPath().getFileName().toString());
 				refreshList();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -1979,8 +2126,31 @@ public class TMFM extends JFrame {
 					if(r == JFileChooser.APPROVE_OPTION) {
 						
 						try {
+							String extension = jfc.getFileFilter().getDescription();
 							File f = jfc.getSelectedFile();
+							if(extension.equals("Text files *.txt")) {
+								String f2 = f.toString();
+								f2 = f2 + ".txt";
+								
+								f = new File(f2);
+							}
+							else if(extension.equals("CSV files *.csv")) {
+								String f2 = f.toString();
+								f2 = f2 + ".csv";
+								
+								f = new File(f2);
+							}
+							else if(extension.equals("HTML Document *.html,*.htm")) {
+								// always .html
+								
+								String f2 = f.toString();
+								f2 = f2 + ".html";
+								
+								f = new File(f2);
+							}
+							
 							FSUtils.saveTextToFile(jfxcomp.getText(), f);
+							
 							jfxcomp.filePath = f.getPath().toString();
 							
 							jfxcomp.docName = "";
@@ -2202,54 +2372,6 @@ public class TMFM extends JFrame {
 		
 		Context.exit();
 	}
-	
-	
-	
-	
-	
-	
-	
-    class TabChanged implements ChangeListener
-    {
-        @Override
-        public void stateChanged(ChangeEvent evt)
-        {
-            if(tabbedEditor.getTabCount()>0)
-            {
-            	int selindex = tabbedEditor.getSelectedIndex();
-            	
-            	Component comp = tabbedEditor.getSelectedComponent();
-            	if(comp instanceof TxEditor) {
-            		TxEditor jfxcomp = (TxEditor) comp;
-            		if(!jfxcomp.filePath.isBlank() && !jfxcomp.filePath.isEmpty())
-            			filenameLabel.setText(new File(jfxcomp.filePath).getName());
-            		else
-            			filenameLabel.setText(jfxcomp.docName);
-            	}
-            	else if(comp instanceof WebkitWebBrowser){
-            		filenameLabel.setText("A web browser lol/");
-            	}
-            	else if(comp instanceof JFXPanel) {
-            		filenameLabel.setText("A Terminal lol/");
-            	}
-            	else if(comp instanceof TxViewer) {
-            		filenameLabel.setText("A viewer viewing " + tabbedEditor.getTitleAt(selindex));
-            	}
-            	else {
-            		filenameLabel.setText("IDK/");
-            	}
-            	
-            	filesHoldList.setSelectedIndex(selindex);
-            }
-            else {
-            	Random rand = new Random();
-            	int choose = rand.nextInt(TexyHolder.nololmsgs.length);
-            	filenameLabel.setText(TexyHolder.nololmsgs[choose] + "/");
-            }
-            
-            refreshList();
-        }
-    }
     
     void insertUser() {
     	Component comp = tabbedEditor.getSelectedComponent();

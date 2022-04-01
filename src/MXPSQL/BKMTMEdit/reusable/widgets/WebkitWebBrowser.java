@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.widgets;
+package MXPSQL.BKMTMEdit.reusable.widgets;
 
 /**
 MIT License
@@ -24,39 +24,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-import javax.swing.*;
 import javafx.event.*;
-import javafx.scene.Scene;
-import java.awt.BorderLayout;
+import javafx.scene.web.*;
+import javafx.beans.value.*;
+import javafx.scene.layout.*;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
 import javafx.concurrent.Worker;
-import javafx.scene.web.WebEngine;
-import javafx.embed.swing.JFXPanel;
-import javafx.scene.layout.Priority;
+import javafx.scene.input.KeyCode;
 import javafx.concurrent.Worker.State;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 
-public class WebkitWebBrowser extends JPanel {
+public class WebkitWebBrowser extends VBox {
 	/**
 	 * 
 	 */
+	@SuppressWarnings("unused")
 	private static final long serialVersionUID = 1L;
-	public WebBrowser webb;
+	public WebView webb;
 	WebEngine webe;
 	TextField field;
 	String homeURL;
 	
 	
 	private void commonInit(String url) {
-		setLayout(new BorderLayout());
-		
-		webb = new WebBrowser(url);
-		webe = webb.getEngine();
-		JFXPanel controller = new JFXPanel();
-		
 		homeURL = url;
+		
+		webb = new WebView();
+		webe = webb.getEngine();
+		webe.load(homeURL);
+		
 		
 		{
 			HBox box = new HBox();
@@ -71,6 +66,13 @@ public class WebkitWebBrowser extends JPanel {
 			
 			box.getChildren().addAll(rel, home, back, forward, field, go);
 			HBox.setHgrow(field, Priority.ALWAYS);
+			
+			field.setOnKeyPressed((e) -> {
+				if(e.getCode() == KeyCode.ENTER) {
+					String urll = field.getText();
+					webe.load(urll);
+				}
+			});
 			
 			{
 				// action event
@@ -151,8 +153,7 @@ public class WebkitWebBrowser extends JPanel {
 				home.setOnAction(homeevent);
 			}
 			
-			Scene scene = new Scene(box);
-			controller.setScene(scene);
+			getChildren().add(box);
 		}
 		
 		webe.getLoadWorker().stateProperty().addListener(new ChangeListener<Worker.State>() {
@@ -174,8 +175,14 @@ public class WebkitWebBrowser extends JPanel {
 			
 		});
 		
-		add(controller, BorderLayout.NORTH);
-		add(webb, BorderLayout.SOUTH);
+		// webe.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36");
+		// webe.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36 Edge/99.0.1150.36");
+		webe.setUserAgent("MXPSQL.BKMTMEdit.Reusable-and-Builtin-WebBrowser/1.0.0 (Windows NT; Win64; x64) yeee JavaFX/19 Safari/613.1 on Java/17 . Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko)");
+		getChildren().add(webb);
+	}
+	
+	public WebEngine getEngine() {
+		return webe;
 	}
 	
 	public WebkitWebBrowser() {

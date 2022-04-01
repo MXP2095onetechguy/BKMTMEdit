@@ -27,7 +27,7 @@ SOFTWARE.
 
 import java.awt.*;
 import javax.swing.*;
-import MXPSQL.BKMTMEdit.widgets.HyperLink;
+import MXPSQL.BKMTMEdit.reusable.widgets.HyperLink;
 
 
 /* completley made with AWT LOL unliek the rest, which is made in swing */

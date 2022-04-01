@@ -17,6 +17,8 @@
   	<pf4j.version>3.6.0</pf4j.version>
   	
   	<swt.version>3.118.0</swt.version>
+  	
+  	<radiance.version>5.0.0</radiance.version>
   </properties>
   
 	<repositories>
@@ -216,5 +218,27 @@
     	<version>1.7.14</version>
 	</dependency>
 	
+	<dependency>
+  		<groupId>com.formdev</groupId>
+  		<artifactId>flatlaf</artifactId>
+  		<version>2.1</version>
+	</dependency>	
+	
+	<dependency>
+  		<groupId>org.pushing-pixels</groupId>
+  		<artifactId>radiance-theming</artifactId>
+  		<version>${radiance.version}</version>
+	</dependency>
+		<dependency>
+  		<groupId>org.pushing-pixels</groupId>
+  		<artifactId>radiance-theming-extras</artifactId>
+  		<version>${radiance.version}</version>
+	</dependency>
+	
+	    <dependency>
+        <groupId>com.googlecode.lanterna</groupId>
+        <artifactId>lanterna</artifactId>
+        <version>3.1.1</version>
+    </dependency>
   </dependencies>
 </project>

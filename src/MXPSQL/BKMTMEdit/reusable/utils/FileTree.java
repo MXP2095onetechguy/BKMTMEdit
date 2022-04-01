@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.utils;
+package MXPSQL.BKMTMEdit.reusable.utils;
 
 /**
 MIT License
@@ -25,47 +25,43 @@ SOFTWARE.
  */
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Scanner;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
-import java.io.ByteArrayOutputStream;
+import javax.swing.tree.*;
 
-public class FSUtils {
-	public static void printstreamTextToFile(String text, PrintStream ps) throws IOException {
-		String[] lines = text.split(System.lineSeparator());
+class FileDefaultMutableTreeNode extends DefaultMutableTreeNode{
 
-		for(int i = 0; i < lines.length; i++){
-			ps.println(lines[i]);
-		}
-	}
-
-	public static void saveTextToFile(String text, File paf) throws IOException {
-		DataOutputStream d = new DataOutputStream(new FileOutputStream(paf));
-		
-		d.writeBytes(text);
-		d.close();
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	public FileDefaultMutableTreeNode(File objec) {
+		super(objec);
 	}
 	
-	public static String getTextFromFile(File f) throws FileNotFoundException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream(baos);
-		
-		Scanner fscan = new Scanner(f);
-		
-		while(fscan.hasNextLine()) {
-			ps.println(fscan.nextLine());
-			// System.out.println(baos.toString());
+	@Override
+	public String toString() {
+		if(userObject instanceof File) {
+			return ((File) userObject).getName();
 		}
-		
-		fscan.close();
-		
-		return baos.toString();
+		else {
+			return userObject.toString();
+		}
+	}
+}
+
+public class FileTree
+{   
+	private FileTree(){
+		;
 	}
 	
-	private FSUtils() {
+	public static MutableTreeNode scan(File node)
+	{
+		FileDefaultMutableTreeNode ret = new FileDefaultMutableTreeNode(node);
 		
+		if (node.isDirectory())
+			for(File child: node.listFiles())
+				ret.add(scan(child));
+		return ret;
 	}
 }

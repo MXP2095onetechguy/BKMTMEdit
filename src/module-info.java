@@ -86,13 +86,25 @@ module MXPSQL.BKMTMEdit {
 	// requires transitive terminalfx;
 	
 	// semver
-	requires java.semver;
+	requires transitive java.semver;
+	
+	// flatlaf
+	requires transitive com.formdev.flatlaf;
+	
+	// radiance
+	// requires transitive org.pushingpixels.radiance.common;
+	requires transitive org.pushingpixels.radiance.theming;
+	requires transitive org.pushingpixels.radiance.theming.extras;
+	
+	// term
+	requires transitive com.googlecode.lanterna;	
 	
 	// export
-	exports MXPSQL.BKMTMEdit.utils;
-	exports MXPSQL.BKMTMEdit.widgets;
 	exports MXPSQL.BKMTMEdit.reusable;
 	exports MXPSQL.BKMTMEdit.pluginapi;
+	exports MXPSQL.BKMTMEdit.reusable.utils;
+	exports MXPSQL.BKMTMEdit.reusable.widgets;
+	exports MXPSQL.BKMTMEdit.reusable.filefilters;
 	
 	// uses
 	uses MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;

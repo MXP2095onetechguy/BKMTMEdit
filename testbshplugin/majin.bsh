@@ -1,0 +1,51 @@
+// Majin
+// A demo plugin
+// An Image viewer so simple it is barely functional
+
+JInternalFrame jif = new JInternalFrame();
+JLabel imajin = new JLabel("I am waiting for an image");
+
+{
+	JMenuBar mb = new JMenuBar();
+	
+	{
+		JMenu f = new JMenu("File");
+		
+		JMenuItem openm = new JMenuItem("Open");
+		
+		openm.addActionListener(new ActionListener(){
+			actionPerformed( event ) {
+				try{
+					JFileChooser jfc = new JFileChooser();
+					jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				
+					int retVal = jfc.showOpenDialog(jif);
+				
+					if (retVal == JFileChooser.APPROVE_OPTION) {
+						File file = jfc.getSelectedFile();
+						
+						try{
+							imajin.setIcon(new ImageIcon(file.getCanonicalPath()));
+						}
+						catch(Exception e){
+							imajin.setText("Just no, that was not an image");
+						}
+					}
+					else{
+						imajin.setText("No, you cancelled it");
+					}
+				}
+				catch(Exception e){}
+			}
+		});
+		
+		f.add(openm);
+		
+		mb.add(f);
+	}
+	
+	jif.setJMenuBar(mb);
+}
+
+jif.add(new JScrollPane(imajin));
+tabbedEditor.add(jif, "Majin image viewer");

@@ -7,8 +7,12 @@ Run the jar, use the command line to have more power.
 
 
 When you run:
-You will see ribbons full of button, some of these have tooltips that give you a tip.
-You will also see a list of currently open documents and a filesystem tree.
+	What you see:
+	You will see ribbons full of button, some of these have tooltips that give you a tip.
+	You will also see a list of currently open documents and a filesystem tree.
+
+	Notes during saving:
+	Saving as HTML will always use the .html extension
 
 When you edit the config:
 TBA

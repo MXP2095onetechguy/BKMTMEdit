@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.utils;
+package MXPSQL.BKMTMEdit.reusable.utils;
 
 /**
 MIT License

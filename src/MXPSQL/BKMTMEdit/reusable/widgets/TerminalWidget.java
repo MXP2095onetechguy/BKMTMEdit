@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.widgets;
+package MXPSQL.BKMTMEdit.reusable.widgets;
 
 /**
 MIT License
@@ -25,34 +25,29 @@ SOFTWARE.
  */
 
 import java.io.*;
+import java.awt.*;
 import java.util.*;
 import javax.swing.*;
+import java.awt.event.*;
 import javax.swing.text.*;
-import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
 
-
-public class TerminalWidget extends JInternalFrame {
+public class TerminalWidget extends JPanel {
 
     /**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	
-	protected ConsolePane cp;
-
+	protected ConsolePane cp = new ConsolePane();
 	public TerminalWidget() {
-		cp = new ConsolePane();
-		add(cp, BorderLayout.CENTER);
+		setLayout(new BorderLayout());
+		add(new JScrollPane(cp), BorderLayout.CENTER);
     }
-	
-	public ConsolePane getTerm() {
-		return cp;
-	}
 	
     public interface CommandListener {
 
         public void commandOutput(String text);
+        
+        public void commandStderr(String text);
 
         public void commandCompleted(String cmd, int result);
 
@@ -65,7 +60,6 @@ public class TerminalWidget extends JInternalFrame {
 		 * 
 		 */
 		private static final long serialVersionUID = 1L;
-		
 		private JTextArea textArea;
         private int userInputStart = 0;
         private Command cmd;
@@ -80,7 +74,6 @@ public class TerminalWidget extends JInternalFrame {
             add(new JScrollPane(textArea));
             
             ActionMap am = textArea.getActionMap();
-
             Action oldAction = am.get("insert-break");
             am.put("insert-break", new AbstractAction() {
                 /**
@@ -104,7 +97,6 @@ public class TerminalWidget extends JInternalFrame {
                             }
                         }
                     } catch (BadLocationException ex) {
-                    	;
                     }
                     oldAction.actionPerformed(e);
                 }
@@ -120,6 +112,11 @@ public class TerminalWidget extends JInternalFrame {
         @Override
         public void commandFailed(Exception exp) {
             SwingUtilities.invokeLater(new AppendTask(this, "Command failed - " + exp.getMessage()));
+        }
+        
+        @Override
+        public void commandStderr(String text) {
+        	SwingUtilities.invokeLater(new AppendTask(this, text));
         }
 
         @Override
@@ -191,7 +188,7 @@ public class TerminalWidget extends JInternalFrame {
 
             if (!cmd.trim().isEmpty()) {
 
-                List<String> values = new ArrayList<>(25);
+                java.util.List<String> values = new ArrayList<>(25);
                 if (cmd.contains("\"")) {
 
                     while (cmd.contains("\"")) {
@@ -238,12 +235,12 @@ public class TerminalWidget extends JInternalFrame {
 
     public class ProcessRunner extends Thread {
 
-        private List<String> cmds;
+        private java.util.List<String> cmds;
         private CommandListener listener;
 
         private Process process;
 
-        public ProcessRunner(CommandListener listener, List<String> cmds) {
+        public ProcessRunner(CommandListener listener, java.util.List<String> cmds) {
             this.cmds = cmds;
             this.listener = listener;
             start();
@@ -255,6 +252,7 @@ public class TerminalWidget extends JInternalFrame {
                 ProcessBuilder pb = new ProcessBuilder(cmds);
                 pb.redirectErrorStream();
                 process = pb.start();
+                StderrStreamGobbler stdg = new StderrStreamGobbler(process.getErrorStream(), listener);
                 StreamReader reader = new StreamReader(listener, process.getInputStream());
                 // Need a stream writer...
 
@@ -270,7 +268,7 @@ public class TerminalWidget extends JInternalFrame {
 
                 listener.commandCompleted(sj.toString(), result);
             } catch (Exception exp) {
-                // exp.printStackTrace();
+                exp.printStackTrace();
                 listener.commandFailed(exp);
             }
         }
@@ -302,7 +300,7 @@ public class TerminalWidget extends JInternalFrame {
                     listener.commandOutput(Character.toString((char) value));
                 }
             } catch (IOException exp) {
-                // eace();
+                exp.printStackTrace();
             }
         }
     }
@@ -337,6 +335,31 @@ public class TerminalWidget extends JInternalFrame {
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
             if (offset >= getUserInput().getUserInputStart()) {
                 super.replace(fb, offset, length, text, attrs); //To change body of generated methods, choose Tools | Templates.
+            }
+        }
+    }
+    
+    public class StderrStreamGobbler extends Thread {
+        InputStream is;
+        CommandListener lis;
+
+        private StderrStreamGobbler(InputStream is, CommandListener lis) {
+            this.is = is;
+            this.lis = lis;
+            start();
+        }
+
+        @Override
+        public void run() {
+            try {
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br = new BufferedReader(isr);
+                String line = null;
+                while ((line = br.readLine()) != null)
+                	lis.commandStderr(line);
+            }
+            catch (IOException ioe) {
+                ioe.printStackTrace();
             }
         }
     }

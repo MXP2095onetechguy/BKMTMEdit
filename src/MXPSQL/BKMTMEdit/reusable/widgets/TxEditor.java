@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.widgets;
+package MXPSQL.BKMTMEdit.reusable.widgets;
 
 /**
 MIT License
@@ -26,6 +26,7 @@ SOFTWARE.
 
 import java.awt.*;
 import javax.swing.*;
+import java.util.List;
 import org.fife.rsta.ui.*;
 import java.util.ArrayList;
 import org.fife.ui.rtextarea.*;
@@ -37,23 +38,52 @@ public class TxEditor extends JInternalFrame {
 	 */
 	private static final long serialVersionUID = 1L;
 	
-	public RSyntaxTextArea area;
+	public TextEditorPane area;
+	public JComboBox<String> languagesbox = new JComboBox<String>();
+	public String defaultLang = SyntaxConstants.SYNTAX_STYLE_NONE;
 	public String filePath = "";
 	public String docName = "";
-	public JFrame winparent;
+	public Frame winparent;
 	
 	int currentSearchFindNumber = 0;
 	int currentSearchReplaceNumber = 0;
 	boolean searchStatus = true;
 	
-	public TxEditor(JFrame winparent) {
-		area = new RSyntaxTextArea(20, 60);
+	protected RTextScrollPane rsp;
+	
+	public TxEditor(Frame winparent, List<String> languages) {
+		area = new TextEditorPane();
 		area.setCodeFoldingEnabled(true);
 		area.setMarkOccurrences(true);
 		
 		CollapsibleSectionPanel csp = new CollapsibleSectionPanel();
-		csp.add(new RTextScrollPane(area));
+		rsp = new RTextScrollPane(area);
+		csp.add(rsp);
+		
+		{
+			String[] larray = new String[languages.size()];
+			for (int i=0;i<larray.length;i++) larray[i]= languages.get(i);
+			languagesbox.setModel(new DefaultComboBoxModel<String>(larray));
+		}
+		
+		
+		add(languagesbox, BorderLayout.NORTH);
 		add(csp, BorderLayout.CENTER);
+		
+		languagesbox.addActionListener((e) -> {
+			if(languagesbox.getSelectedItem() instanceof String) {
+				String lang = (String) languagesbox.getSelectedItem();
+				
+				if(lang == "default*") {
+					area.setSyntaxEditingStyle(defaultLang);
+				}
+				else {
+					area.setSyntaxEditingStyle(lang);
+				}
+			}
+		});
+		
+		this.winparent = winparent;
 	}
 	
 	public String getText() {
@@ -87,7 +117,7 @@ public class TxEditor extends JInternalFrame {
 					return;
 				}
 					
-				ArrayList<Integer> matchpos = new ArrayList<Integer>();
+				List<Integer> matchpos = new ArrayList<Integer>();
 				
 				int index = getText().indexOf(field.getText(), area.getCaretPosition());
 				
@@ -188,7 +218,7 @@ public class TxEditor extends JInternalFrame {
 				}
 				
 				String text = getText();
-				ArrayList<Integer> matchpos = new ArrayList<Integer>();
+				List<Integer> matchpos = new ArrayList<Integer>();
 				
 				int index = text.indexOf(field.getText());
 				
