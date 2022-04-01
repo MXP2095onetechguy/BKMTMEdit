@@ -336,13 +336,13 @@ public class TMMain {
 			
 			try{
 				if(StaticStorageProperties.version.greaterThan(Version.valueOf(rawSemConfVer))) {
-					StaticStorageProperties.logger.error("Outdated idot. press alt+tab to get the dialog");
+					StaticStorageProperties.logger.error("Outdated idot. press alt+tab to get the dialog, \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
 					JOptionPane.showMessageDialog(null, "Too old of a config, I cannot run with this, update your config.");
 					System.exit(StaticStorageProperties.badExit);
 				}
 			}
 			catch(Exception e){
-				StaticStorageProperties.logger.error("I don't think " + rawSemConfVer + " is a valid semantic versioning, I use it ok. Fix it ok. I cannot run with that version.");
+				StaticStorageProperties.logger.error("I don't think " + rawSemConfVer + " is a valid semantic versioning, I use it ok. Fix it ok. I cannot run with that version. \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
 				System.exit(StaticStorageProperties.badExit);
 			}
 			

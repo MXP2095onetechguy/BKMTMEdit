@@ -30,6 +30,7 @@ import java.util.*;
 import javax.swing.*;
 import java.awt.event.*;
 import javax.swing.text.*;
+import MXPSQL.BKMTMEdit.reusable.utils.streamgobbler.StreamGobbler;
 
 public class TerminalWidget extends JPanel {
 
@@ -43,7 +44,7 @@ public class TerminalWidget extends JPanel {
 		add(new JScrollPane(cp), BorderLayout.CENTER);
     }
 	
-    public interface CommandListener {
+    protected interface CommandListener {
 
         public void commandOutput(String text);
         
@@ -54,7 +55,7 @@ public class TerminalWidget extends JPanel {
         public void commandFailed(Exception exp);
     }
 
-    public class ConsolePane extends JPanel implements CommandListener, Terminal {
+    protected class ConsolePane extends JPanel implements CommandListener, Terminal {
 
         /**
 		 * 
@@ -144,16 +145,16 @@ public class TerminalWidget extends JPanel {
         }
     }
 
-    public interface UserInput {
+    protected interface UserInput {
 
         public int getUserInputStart();
     }
 
-    public interface Terminal extends UserInput {
+    protected interface Terminal extends UserInput {
         public void appendText(String text);
     }
 
-    public class AppendTask implements Runnable {
+    protected class AppendTask implements Runnable {
 
         private Terminal terminal;
         private String text;
@@ -169,7 +170,7 @@ public class TerminalWidget extends JPanel {
         }
     }
 
-    public class Command {
+    protected class Command {
 
         private CommandListener listener;
         private ProcessRunner runner;
@@ -233,7 +234,7 @@ public class TerminalWidget extends JPanel {
         }
     }
 
-    public class ProcessRunner extends Thread {
+    protected class ProcessRunner extends Thread {
 
         private java.util.List<String> cmds;
         private CommandListener listener;
@@ -252,14 +253,22 @@ public class TerminalWidget extends JPanel {
                 ProcessBuilder pb = new ProcessBuilder(cmds);
                 pb.redirectErrorStream();
                 process = pb.start();
-                StderrStreamGobbler stdg = new StderrStreamGobbler(process.getErrorStream(), listener);
+                TermCmdListenerStreamGobbler stdg = new TermCmdListenerStreamGobbler(process.getErrorStream(), listener);
                 StreamReader reader = new StreamReader(listener, process.getInputStream());
+                
+                // run the stream gobbler
+                stdg.run();
+                
                 // Need a stream writer...
 
                 int result = process.waitFor();
 
                 // Terminate the stream writer
                 reader.join();
+                
+                // Terminate the stream gobbler
+                stdg.setCancel(true);
+                stdg.join();
 
                 StringJoiner sj = new StringJoiner(" ");
                 cmds.stream().forEach((cmd) -> {
@@ -281,7 +290,7 @@ public class TerminalWidget extends JPanel {
         }
     }
 
-    public class StreamReader extends Thread {
+    protected class StreamReader extends Thread {
 
         private InputStream is;
         private CommandListener listener;
@@ -305,7 +314,7 @@ public class TerminalWidget extends JPanel {
         }
     }
 
-    public class ProtectedDocumentFilter extends DocumentFilter {
+    protected class ProtectedDocumentFilter extends DocumentFilter {
 
         private UserInput userInput;
 
@@ -339,28 +348,17 @@ public class TerminalWidget extends JPanel {
         }
     }
     
-    public class StderrStreamGobbler extends Thread {
+    // a stream gobbler dedicated to put messages to the command listener
+    protected class TermCmdListenerStreamGobbler extends StreamGobbler {
         InputStream is;
         CommandListener lis;
 
-        private StderrStreamGobbler(InputStream is, CommandListener lis) {
+        private TermCmdListenerStreamGobbler(InputStream is, CommandListener lis) {
+        	super(is);
             this.is = is;
             this.lis = lis;
-            start();
-        }
-
-        @Override
-        public void run() {
-            try {
-                InputStreamReader isr = new InputStreamReader(is);
-                BufferedReader br = new BufferedReader(isr);
-                String line = null;
-                while ((line = br.readLine()) != null)
-                	lis.commandStderr(line);
-            }
-            catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
+            
+            addListener(e -> lis.commandStderr(e));
         }
     }
 }
