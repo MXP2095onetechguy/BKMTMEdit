@@ -941,13 +941,28 @@ public class TMFM extends JFrame {
                 	JMenu helpm = new JMenu("Help");
                 	
                 	JMenuItem aboutmi = new JMenuItem("About");
+                	JMenuItem licensemi = new JMenuItem("License");
+                	
                 	aboutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
+                	licensemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
+                	
+                	aboutmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/About.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	licensemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/License.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	
                 	aboutmi.addActionListener((e) -> {
                 		showAbout();
                 	});
                 	
+                	licensemi.addActionListener((e) -> {
+                		try {
+							JOptionPane.showMessageDialog(dis, FSUtils.getTextFromFile(ResourceGet.getFile(this.getClass(), "LICENSE")), "LICENSE", JOptionPane.INFORMATION_MESSAGE);
+						} catch (HeadlessException | FileNotFoundException e1) {
+							JOptionPane.showMessageDialog(this, e1, "Error opening LICENSE", JOptionPane.ERROR_MESSAGE);
+						}
+                	});
+                	
                 	helpm.add(aboutmi);
+                	helpm.add(licensemi);
                 	
                 	mb.add(helpm);
                 }
@@ -1854,7 +1869,7 @@ public class TMFM extends JFrame {
 	public void addTerminal() {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
 		Platform.runLater(() -> {
-			JOptionPane.showMessageDialog(dis, "Just no, it's bad and does not work properly", "NO, it bad", JOptionPane.WARNING_MESSAGE);
+			// JOptionPane.showMessageDialog(dis, "Just no, it's bad and does not work properly", "NO, it bad", JOptionPane.WARNING_MESSAGE);
 			TerminalWidget termw = new TerminalWidget();
 			new DropTarget(termw, new FileDND());
 			tabbedEditor.addTab(termw, "term " + termsessioncount);

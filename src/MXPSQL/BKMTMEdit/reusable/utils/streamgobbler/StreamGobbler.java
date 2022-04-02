@@ -5,9 +5,9 @@ import java.util.*;
 
 // Gobbles the stream and gives it to the observers
 public class StreamGobbler extends Thread {
-	List<StreamGobblerListener> listeners = new ArrayList<StreamGobblerListener>();
-	InputStream is;
-	boolean shouldRun = true;
+	protected List<StreamGobblerListener> listeners = new ArrayList<StreamGobblerListener>();
+	protected InputStream is;
+	protected boolean shouldRun = true;
 	
 	public StreamGobbler(InputStream is) {
 		this.is = is;
@@ -49,16 +49,18 @@ public class StreamGobbler extends Thread {
 	
 	@Override
 	public void run() {
-		try {
-			InputStreamReader isr = new InputStreamReader(is);
-			BufferedReader bfr = new BufferedReader(isr);
-			String line=null;
-			while(((line = bfr.readLine()) != null) && shouldRun)
-				for(StreamGobblerListener sgl : listeners)
-					sgl.onMessage(line);
-		}
-		catch(IOException ioe) {
-			;
+		while(shouldRun) {
+			try {
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader bfr = new BufferedReader(isr);
+				String line=null;
+				while(((line = bfr.readLine()) != null) && shouldRun)
+					for(StreamGobblerListener sgl : listeners)
+						sgl.onMessage(line);
+			}
+			catch(IOException ioe) {
+				;
+			}
 		}
 	}
 }

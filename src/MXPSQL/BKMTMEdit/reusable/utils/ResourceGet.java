@@ -47,13 +47,18 @@ public class ResourceGet {
 	}
 	
 	public static File getFile(Class<?> clas_y, String resource) {
-		URL url = getURL(clas_y, resource);
-		
-		if(url == null) {
+		URI uri;
+		try {
+			uri = getURI(clas_y, resource);
+			
+			if(uri == null) {
+				return null;
+			}
+			else {
+				return new File(uri);
+			}
+		} catch (URISyntaxException e) {
 			return null;
-		}
-		else {
-			return new File(url.toString());
 		}
 	}
 	
