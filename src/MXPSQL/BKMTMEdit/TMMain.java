@@ -160,7 +160,7 @@ public class TMMain {
 		ps.println("# flatlaf themes: flatlightlaf, flatdarklaf, flatintellijlaf, flatdarculalaf");
 		ps.println("# radiance themes: business, businessblue, sahara, officesilver2007, officeblue2007, officeblack2007, findingnemo");
 		ps.println("# special theme option: synth, intellijsynth");
-		ps.println("theme.type=metal");
+		ps.println("theme.type=flatintellijlaf");
 		ps.println("theme.synthxmlfile=");
 		ps.println("theme.synthintellijjsonfile=");
 		ps.println();
@@ -183,7 +183,10 @@ public class TMMain {
 		ps.println("# Rhino Javascript Macros");
 		ps.println("# Example: extension.preloadrjsmacros=s1.js#s2.js#s3.js");
 		ps.println("# The macro interpreter has the Editor variable, the same with the beanshell macro api");
-		ps.println("preloadrjsmacros=");
+		ps.println("extension.preloadrjsmacros=");
+		ps.println("# Groovy Macros");
+		ps.println("# Example: extension.preloadgroovymacros=si.gsh#siu.gsh#se.gsh#groovy.gsh");
+		ps.println("extension.preloadgroovymacros=");
 		ps.println("# Macro Security");
 		ps.println("extension.remindmeaboutmacrosafety=true");
 		
@@ -387,6 +390,30 @@ public class TMMain {
 							else {
 								StaticStorageProperties.logger.error("A javascript macro check failed! Press alt+tab to see a dialog box");
 								JOptionPane.showMessageDialog(null, "Failed to read javascript macro " + rjsMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
+						}
+					}
+				}
+			}
+			
+			{
+				String groovyMacroNameRaw = StaticStorageProperties.config.getString("extension.preloadgroovymacros");
+				if(groovyMacroNameRaw != null && !groovyMacroNameRaw.isEmpty() && !groovyMacroNameRaw.isBlank()) {
+					String[] groovyMacroName = groovyMacroNameRaw.split("#");
+					if(groovyMacroName.length > 0) {				
+						for(int i = 0; i < groovyMacroName.length; i++) {
+							File ff = new File(groovyMacroName[i]);
+							if(ff.isFile()) {
+								String code = "";
+							
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+							
+								StaticStorageProperties.groovyMacros.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A groovy macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read Groovy macro " + groovyMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
 								System.exit(StaticStorageProperties.badExit);
 							}
 						}

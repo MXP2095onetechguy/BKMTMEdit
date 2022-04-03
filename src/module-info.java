@@ -30,6 +30,7 @@ module MXPSQL.BKMTMEdit {
 	requires java.base;
 	requires transitive java.sql;
 	requires transitive java.net.http;
+	requires transitive java.scripting;
 	
 	// swing and awt
 	requires transitive java.desktop;
@@ -61,6 +62,9 @@ module MXPSQL.BKMTMEdit {
 	
 	// beanshell
 	requires transitive bsh;
+	
+	// groovy yay!
+	requires transitive org.codehaus.groovy;
 	
 	// rhino
 	requires transitive org.mozilla.rhino;
