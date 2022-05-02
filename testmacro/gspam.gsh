@@ -1,0 +1,1 @@
+Editor.area.insert(CurrentText * 500);

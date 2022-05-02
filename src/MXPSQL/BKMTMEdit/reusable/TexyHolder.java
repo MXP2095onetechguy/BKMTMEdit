@@ -59,7 +59,16 @@ public class TexyHolder {
 			"No lol, you do not kill people, killer robots",
 			"No lol, this is my cock chicken, get your own",
 			"No lol, yer mmmmmmmmmmmm",
-			"No lol, noice memes ya git there"
+			"No lol, noice memes ya git there",
+			"No lol, Aw man, no fish wanted your rod",
+			"No lol, awk",
+			"No lol, pig sus ngl",
+			"No lol, MAMAZon is here",
+			"No lol, ioeqpwurpoqwefjdanfvcx",
+			"No lol, one of the message is a keymash",
+			"No lol, eclipse is cool, used to write me :)",
+			"No lol, pigs are sus, pig not impostor",
+			"No lol, impasta from italy"
 	};
 	
 	public final static String Texy = "Texy";

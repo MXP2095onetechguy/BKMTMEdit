@@ -47,13 +47,16 @@ public class About extends JDialog {
 			}
 			
 			{
+				
 				JLabel image = new JLabel(new ImageIcon(new ImageIcon(this.getClass().getResource("bkmtmedit.png")).getImage().getScaledInstance(256, 256, Image.SCALE_DEFAULT)));
+				image.setToolTipText("Actual Logo");
+				
 				pane.add(image);
 			}
 			
 			{
 				JLabel desc = new JLabel("");
-				desc.setText("<html>hEY, this is a text editor. Written in Java using Swing, AWT and JavaFX. <br>You know, this is actualy open source, under MIT License, you can visit the source with the button below. <br>Version " + StaticStorageProperties.version.toString() + ".</html>");
+				desc.setText("<html>hEY, this is a text editor. Written in Java using Swing, AWT and JavaFX (SWT planned, but broken if I use it). <br>You know, this is actualy open source, under MIT License, you can visit the source with the button below. <br>Version " + StaticStorageProperties.version.toString() + ".</html>");
 				pane.add(desc, BorderLayout.SOUTH);
 			}
 			

@@ -43,6 +43,7 @@ public class WebkitWebBrowser extends VBox {
 	WebEngine webe;
 	TextField field;
 	String homeURL;
+	ProgressBar pbar;
 	
 	
 	private void commonInit(String url) {
@@ -52,7 +53,9 @@ public class WebkitWebBrowser extends VBox {
 		webe = webb.getEngine();
 		webe.load(homeURL);
 		
+		pbar = new ProgressBar();
 		
+		VBox boxd = new VBox();
 		{
 			HBox box = new HBox();
 			
@@ -153,7 +156,9 @@ public class WebkitWebBrowser extends VBox {
 				home.setOnAction(homeevent);
 			}
 			
-			getChildren().add(box);
+			boxd.setFillWidth(true);
+			pbar.prefWidthProperty().bind(boxd.widthProperty());
+			boxd.getChildren().addAll(box, pbar);
 		}
 		
 		webe.getLoadWorker().stateProperty().addListener(new ChangeListener<Worker.State>() {
@@ -163,12 +168,18 @@ public class WebkitWebBrowser extends VBox {
 				// TODO Auto-generated method stub
 				if(newValue == Worker.State.SUCCEEDED) {
 					field.setText(webe.getLocation());
+					pbar.setProgress(0);
+				}
+				else if(newValue == Worker.State.RUNNING) {
+					pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
 				}
 				else if(newValue == Worker.State.FAILED) {
 					Dialog<Void> alert = new Dialog<>();
-			        alert.getDialogPane().setContentText("There seems to be a problem with this web browser.");
+			        alert.getDialogPane().setContentText("There seems to be a problem with this web browser. \nIt seems there is a problem browsing to " + field.getText());
 			        alert.getDialogPane().getButtonTypes().add(ButtonType.OK);
 			        alert.showAndWait();
+			        
+			        pbar.setProgress(0);
 				}
 				
 			}
@@ -178,7 +189,9 @@ public class WebkitWebBrowser extends VBox {
 		// webe.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36");
 		// webe.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36 Edge/99.0.1150.36");
 		webe.setUserAgent("MXPSQL.BKMTMEdit.Reusable-and-Builtin-WebBrowser/1.0.0 (Windows NT; Win64; x64) yeee JavaFX/19 Safari/613.1 on Java/17 . Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko)");
-		getChildren().add(webb);
+		
+		getChildren().addAll(boxd, webb);
+		// getChildren().add(boxd);
 	}
 	
 	public WebEngine getEngine() {

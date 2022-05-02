@@ -24,10 +24,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
+
 import java.util.*;
 import org.slf4j.*;
 import java.io.File;
-import javax.swing.*;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.net.http.HttpClient;
@@ -41,7 +41,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public class StaticStorageProperties {
 	// runtime
-	public static final Version version = Version.valueOf("1.1.2");
+	public static final Version version = Version.valueOf("1.2.0");
 	public static final int abortExit = 1;
 	public static final int goodExit = 0;
 	public static final int parserExit = -1;
@@ -55,18 +55,22 @@ public class StaticStorageProperties {
 	public static File intellijson = null;
 	
 	// editors
+	public static final String baseTitle = "BKMTMEdit (Better Kate-Middleton The MXPSQL Editor)";
 	public static Map<String, String> bshMacros = new HashMap<String, String>();
 	public static Map<String, String> rhinoJSMacros = new HashMap<String, String>();
 	public static Map<String, String> groovyMacros = new HashMap<String, String>();
+	public static Map<String, String> rbM = new HashMap<String, String>();
+	public static Map<String, String> jpyMacroMedias = new HashMap<String, String>();
 	public static boolean remimdMeAboutMacroSafety = true;
-	public static List<File> startingFiles = null;
+	public static boolean SEMode = true; // Stdout Editor mode
+	public static java.util.List<File> startingFiles = null;
 	public static FileFilter[] filt = new FileFilter[] {
 			new TxtSaveFilters(),
 			new CSVSaveFilters(),
 			new HTMLSaveFilters()
 	};
 	public static String home_page = "https://google.com";
-	public static HashMap<String, ImmutablePair<String[], String>> syntaxset = new HashMap<String, ImmutablePair<String[], String>>();
+	public static Map<String, ImmutablePair<String[], String>> syntaxset = new HashMap<String, ImmutablePair<String[], String>>();
 	
 	// Plugins
 	public static Object pluginManager;
@@ -94,16 +98,40 @@ public class StaticStorageProperties {
 	
 	// config
 	public static Configuration config;
-	public static final String DeafultConfigFileLocation = "BKMTMEdit.properties";
-	
-	
-	
-	// swingui
-	public static JFrame window;
-	public static final String baseTitle = "BKMTMEdit (Better Kate-Middleton The MXPSQL Editor)";
-	public static final int[] winsize = new int[] {860, 680};
+	public static final String ConfigFileName = "BKMTMEdit.properties";
+	public static final String DefaultCurrentDirectoryConfigFileLocation = Paths.get(cwd).toAbsolutePath().resolve(ConfigFileName).toString();
+	public static final String DefaultUserLocatedConfigFileLocation = Paths.get(System.getProperty("user.home")).toAbsolutePath().resolve(ConfigFileName).toString();
+	public static String ConfigFileLocation = "";
 	
 	private StaticStorageProperties() {
 		;
+	}
+	
+	public static File CWDConfig() {
+		return new File(DefaultCurrentDirectoryConfigFileLocation);
+	}
+	
+	public static File UserConfig() {
+		return new File(DefaultUserLocatedConfigFileLocation);
+	}
+	
+	/*
+	 * First function here
+	 */
+	public static boolean SSPConfigInit() {
+		if(!CWDConfig().isFile()) {
+			if(!UserConfig().isFile()) {
+				ConfigFileLocation = DefaultUserLocatedConfigFileLocation;
+				return false;
+			}
+			else {
+				ConfigFileLocation = DefaultUserLocatedConfigFileLocation;
+			}
+		}
+		else {
+			ConfigFileLocation = DefaultCurrentDirectoryConfigFileLocation;
+		}
+		
+		return true;
 	}
 }

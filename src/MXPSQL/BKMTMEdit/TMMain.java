@@ -163,6 +163,11 @@ public class TMMain {
 		ps.println("theme.type=flatintellijlaf");
 		ps.println("theme.synthxmlfile=");
 		ps.println("theme.synthintellijjsonfile=");
+		ps.println("# UI Visibility");
+		ps.println("# true or false only, example: visibility.ribbon=true");
+		ps.println("visibility.ribbon=true");
+		// ps.println("visibility.documentpane=true");
+		ps.println("visibility.statusbar=true");
 		ps.println();
 		ps.println("# Web browser related");
 		ps.println("# Home page!");
@@ -187,6 +192,10 @@ public class TMMain {
 		ps.println("# Groovy Macros");
 		ps.println("# Example: extension.preloadgroovymacros=si.gsh#siu.gsh#se.gsh#groovy.gsh");
 		ps.println("extension.preloadgroovymacros=");
+		ps.println("# Ruby macros");
+		ps.println("extension.preloadrb=");
+		ps.println("# Python macros");
+		ps.println("extension.preloadpythonmacros=");
 		ps.println("# Macro Security");
 		ps.println("extension.remindmeaboutmacrosafety=true");
 		
@@ -205,22 +214,27 @@ public class TMMain {
 			parser.addArgument("-v", "--version").action(Arguments.version()).help("It's obvious what does it mean on the flag. If you still don't get it, it is used to get the version");
 			parser.addArgument("dndf").dest("dndf").help("Drag and drop into this thing if it is possible").type(String.class).nargs("*");
 			parser.addArgument("-l", "--logoff").dest("turnofflog").help("turn off those pesky but useful log messages").required(false).action(Arguments.storeTrue());
-			parser.addArgument("-c", "--config").dest("configPath").help("Path to config").type(String.class).required(false);
-			parser.addArgument("-p", "--homepage").dest("homepage").help("Your homepage!").type(String.class).required(false);
-			parser.addArgument("--warnotpeace").dest("wnp").help("War not peace because peacenotwar has shown peace to be the enemy. #Warnotpeace #Nopeacenotwar and don't #peacenotwar").required(false).action(Arguments.storeTrue());
-			parser.addArgument("-d", "--pwd").dest("cwd").help("Current directory").type(String.class).required(false);
+			parser.addArgument("-c", "--config").metavar("YOUR OTHER CONFIG").dest("configPath").help("Path to config").type(String.class).required(false);
+			parser.addArgument("-p", "--homepage").metavar("YOUR CUSTOM HOMEPAGE").dest("homepage").help("Your homepage!").type(String.class).required(false);
+			parser.addArgument("-d", "--pwd").metavar("YOUR DIRECTORY HERE").dest("cwd").help("Current directory").type(String.class).required(false);
+			parser.addArgument("-se", "--stdout-editor").dest("se").help("Stdout editor mode, useful to ask for input. \nYou should read the docs for more info.").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-cw", "--config-wizard").dest("config-wizard").help("A wizard to create config (Not Implemented)").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-?", "-help", "-Help").dest("helpme").help("Does the same job as -h").required(false).action(Arguments.storeTrue());
+		}
+		
+		// System.out.println(parser.formatHelp());
+		// StaticStorageProperties.logger.info("Starting up editor.");
+		
+		if(SystemUtils.IS_OS_AIX || SystemUtils.IS_OS_SOLARIS) {
+			StaticStorageProperties.logger.error("AIX and SOLARIS ain't supported.");
+			JOptionPane.showMessageDialog(null, "Pls, no. I do not support AIX and Solaris");
+			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		}
 		
 		if(GraphicsEnvironment.isHeadless() || !Desktop.isDesktopSupported()) {
 			if(!StaticStorageProperties.logoff)
 				StaticStorageProperties.logger.error("Unsupported Environment! There is no desktop.");
 			System.exit(StaticStorageProperties.badExit);
-		}
-		
-		if(SystemUtils.IS_OS_AIX || SystemUtils.IS_OS_SOLARIS) {
-			StaticStorageProperties.logger.error("AIX and SOLARIS ain't supported.");
-			JOptionPane.showMessageDialog(null, "Pls, no. I do not support AIX and Solaris");
-			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		}
 		
 		try {
@@ -230,6 +244,14 @@ public class TMMain {
 			parser.handleError(apex);
 			System.exit(StaticStorageProperties.parserExit);
 		}
+		
+		if(StaticStorageProperties.ns.getBoolean("helpme")) {
+			System.out.println(parser.formatHelp());
+			System.exit(StaticStorageProperties.parserExit);
+		}
+		
+		StaticStorageProperties.logoff = StaticStorageProperties.ns.get("turnofflog");
+		StaticStorageProperties.SEMode = StaticStorageProperties.ns.getBoolean("se");
 		
 		if(!StaticStorageProperties.ns.getList("dndf").isEmpty()) {
 			ArrayList<Object> fsl = (ArrayList<Object>) StaticStorageProperties.ns.getList("dndf");
@@ -279,8 +301,6 @@ public class TMMain {
 			StaticStorageProperties.cwdPath = Paths.get(StaticStorageProperties.cwd);
 		}
 		
-		StaticStorageProperties.logoff = StaticStorageProperties.ns.get("turnofflog");
-		
 		// reused from https://github.com/MXP2095onetechguy/JEXTEdit/blob/master/src/app/MXPSQL/JEXTEdit/JEXTMain.java#L499 unmodified
         // sun.awt.xembedserver workaround, run if Linux
         if(SystemUtils.IS_OS_LINUX) {
@@ -291,7 +311,8 @@ public class TMMain {
 		// JFrame.setDefaultLookAndFeelDecorated(true);
 		
 		try {
-			String floc = StaticStorageProperties.DeafultConfigFileLocation;
+			boolean status = StaticStorageProperties.SSPConfigInit();
+			String floc = StaticStorageProperties.ConfigFileLocation;
 			
 			if(StaticStorageProperties.ns.getString("configPath") != null){
 				floc = StaticStorageProperties.ns.getString("configPath");
@@ -299,18 +320,41 @@ public class TMMain {
 			
 			File f = new File(floc);
 			
-			if(!f.exists()) {
+			if(!status) {
 				System.out.println("I got you a dialog, check it out using alt+tab");
 				JOptionPane.showMessageDialog(null, "You don't have a config. let me make one.");
 				f.createNewFile();
 				
 				makeConfig(f);
 				
+				{
+					System.out.print("Creating config in current directory.");
+					int i = JOptionPane.showConfirmDialog(null, "Do you want to make a config file \nin your current directory?", "Config?", JOptionPane.YES_NO_OPTION);
+					
+					if(i == JOptionPane.YES_OPTION) {
+						System.out.println("Yes");
+						
+						File f2 = new File(StaticStorageProperties.DefaultCurrentDirectoryConfigFileLocation);
+						f2.createNewFile();
+						
+						makeConfig(f2);
+					}
+					else {
+						System.out.println("no");
+					}
+				}
+				
 				System.out.println("Done, check the new dialog using alt+tab");
 				JOptionPane.showMessageDialog(null, "OK, jobs done.");
 				
 				System.exit(StaticStorageProperties.goodExit);
 			}
+			
+			if(!StaticStorageProperties.CWDConfig().isFile())
+				StaticStorageProperties.logger.warn("No config in current directory, using user config");
+			
+			if(!StaticStorageProperties.UserConfig().isFile())
+				StaticStorageProperties.logger.warn("No config in user home directory, using current directory's config");
 			
 			Configurations configs = new Configurations();
 			StaticStorageProperties.config = configs.properties(f);
@@ -422,6 +466,54 @@ public class TMMain {
 			}
 			
 			{
+				String rbMacroNameRaw = StaticStorageProperties.config.getString("extension.preloadrb");
+				if(rbMacroNameRaw != null && !rbMacroNameRaw.isEmpty() && !rbMacroNameRaw.isBlank()) {
+					String[] rbMacroName = rbMacroNameRaw.split("#");
+					if(rbMacroName.length > 0) {				
+						for(int i = 0; i < rbMacroName.length; i++) {
+							File ff = new File(rbMacroName[i]);
+							if(ff.isFile()) {
+								String code = "";
+							
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+							
+								StaticStorageProperties.rbM.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A ruby macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read Ruby macro " + rbMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
+						}
+					}
+				}
+			}
+			
+			{
+				String jpyMacroNameRaw = StaticStorageProperties.config.getString("extension.preloadpythonmacros");
+				if(jpyMacroNameRaw != null && !jpyMacroNameRaw.isEmpty() && !jpyMacroNameRaw.isBlank()) {
+					String[] jpyMacroName = jpyMacroNameRaw.split("#");
+					if(jpyMacroName.length > 0) {				
+						for(int i = 0; i < jpyMacroName.length; i++) {
+							File ff = new File(jpyMacroName[i]);
+							if(ff.isFile()) {
+								String code = "";
+							
+								code = FileUtils.readFileToString(ff, StandardCharsets.UTF_8);
+							
+								StaticStorageProperties.jpyMacroMedias.put(ff.getCanonicalPath(), code);
+							}
+							else {
+								StaticStorageProperties.logger.error("A JPython macro check failed! Press alt+tab to see a dialog box");
+								JOptionPane.showMessageDialog(null, "Failed to read JPython macro " + jpyMacroName[i] + ".", "Macro Error", JOptionPane.ERROR_MESSAGE);
+								System.exit(StaticStorageProperties.badExit);
+							}
+						}
+					}
+				}
+			}
+			
+			{
 				// Set the plugin dir
 				System.setProperty("pf4j.pluginsDir", "BKMTMEdit-plugins");
 				
@@ -454,6 +546,9 @@ public class TMMain {
 					}
 				}
 			}
+		}
+		catch(FileNotFoundException fnfe) {
+			
 		}
 		catch(ConfigurationException | IOException mex) {
 			JOptionPane.showMessageDialog(null, mex, "Configuration Is Bad", JOptionPane.ERROR_MESSAGE);
@@ -508,12 +603,12 @@ public class TMMain {
 			
 			if(f.exists()) {
 				
-				StaticStorageProperties.window.setIconImage( new ImageIcon( StaticStorageProperties.cwdPath.resolve("src").resolve("MXPSQL").resolve("BKMTMEdit").resolve("Resource").resolve("bkmtmedit.png").toFile().toString() ).getImage() );
+				StaticWidget.window.setIconImage( new ImageIcon( StaticStorageProperties.cwdPath.resolve("src").resolve("MXPSQL").resolve("BKMTMEdit").resolve("Resource").resolve("bkmtmedit.png").toFile().toString() ).getImage() );
 			}
 			else {
 				f = StaticStorageProperties.cwdPath.resolve("MXPSQL").resolve("BKMTMEdit").resolve("Resource").resolve("bkmtmedit.png").toFile();
 				if(f.exists())
-					StaticStorageProperties.window.setIconImage( new ImageIcon( f.toString() ).getImage() );
+					StaticWidget.window.setIconImage( new ImageIcon( f.toString() ).getImage() );
 			}
 		} */
 		
@@ -553,20 +648,27 @@ public class TMMain {
 			SwingUtilities.invokeAndWait(() -> {
 				try{
 					{
-						StaticStorageProperties.window = new TMFM(StaticStorageProperties.baseTitle, () -> {
-							cdl.countDown();
-						});
+						if(StaticStorageProperties.SEMode) {
+							StaticWidget.window = new TMSEFM(StaticStorageProperties.baseTitle, () -> {
+								cdl.countDown();
+							});
+						}
+						else{
+							StaticWidget.window = new TMFM(StaticStorageProperties.baseTitle, () -> {
+								cdl.countDown();
+							});
+						}
 
-						// StaticStorageProperties.window.setResizable(false);
-						StaticStorageProperties.window.setMinimumSize(new Dimension(StaticStorageProperties.winsize[0], StaticStorageProperties.winsize[1]));
-						StaticStorageProperties.window.setSize(StaticStorageProperties.winsize[0], StaticStorageProperties.winsize[1]);
-						StaticStorageProperties.window.setLocationRelativeTo(null);
+						// StaticWidget.window.setResizable(false);
+						StaticWidget.window.setMinimumSize(new Dimension(StaticWidget.winsize[0], StaticWidget.winsize[1]));
+						StaticWidget.window.setSize(StaticWidget.winsize[0], StaticWidget.winsize[1]);
+						StaticWidget.window.setLocationRelativeTo(null);
 
-						StaticStorageProperties.window.setIconImage(new ImageIcon(ResourceGet.getURL(TMMain.class, "bkmtmedit.png")).getImage());
+						StaticWidget.window.setIconImage(new ImageIcon(ResourceGet.getURL(TMMain.class, "bkmtmedit.png")).getImage());
 					}
 
 					{
-						StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+						StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type", StaticStorageProperties.defaultTheme);
 
 						try {
 			    	        // Set cross-platform Java L&F (also called "Metal") by default
@@ -580,10 +682,9 @@ public class TMMain {
 
 							switch(StaticStorageProperties.theme){
 								case "platform":
-									System.out.println(StaticStorageProperties.theme);
 									UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 									// Will not change due to an error (FIXED now! YEH :D)
-									// JOptionPane.showMessageDialog(StaticStorageProperties.window, "There seems to be a problem with this theme that prevents it from working, please change to another theme next time", "Platform", JOptionPane.ERROR_MESSAGE);
+									// JOptionPane.showMessageDialog(StaticWidget.window, "There seems to be a problem with this theme that prevents it from working, please change to another theme next time", "Platform", JOptionPane.ERROR_MESSAGE);
 									break;
 								case "metal":
 									UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
@@ -603,12 +704,12 @@ public class TMMain {
 									SynthLookAndFeel lookAndFeel = new SynthLookAndFeel();
 									if(StaticStorageProperties.synthloc != null && StaticStorageProperties.synthloc.exists() && StaticStorageProperties.synthloc.isFile()) {
 										try(InputStream stream = new FileInputStream(StaticStorageProperties.synthloc.getCanonicalFile())){
-											lookAndFeel.load(stream, StaticStorageProperties.window.getClass());
+											lookAndFeel.load(stream, StaticWidget.window.getClass());
 											UIManager.setLookAndFeel(lookAndFeel);
 										}
 									}
 									else {
-										JOptionPane.showMessageDialog(StaticStorageProperties.window, "Your synth .xml file does not exist, reverting to default theme.", "No synth.xml", JOptionPane.ERROR_MESSAGE);
+										JOptionPane.showMessageDialog(StaticWidget.window, "Your synth .xml file does not exist, reverting to default theme.", "No synth.xml", JOptionPane.ERROR_MESSAGE);
 									}
 
 									break;
@@ -639,11 +740,11 @@ public class TMMain {
 											}
 										}
 										else {
-											JOptionPane.showMessageDialog(StaticStorageProperties.window, "Your intellij theme.json does not exist, reverting to default theme.", "No intellij .theme.json", JOptionPane.ERROR_MESSAGE);
+											JOptionPane.showMessageDialog(StaticWidget.window, "Your intellij theme.json does not exist, reverting to default theme.", "No intellij .theme.json", JOptionPane.ERROR_MESSAGE);
 										}
 									}
 									else {
-										JOptionPane.showMessageDialog(StaticStorageProperties.window, "Your intellij .theme.json does not exist, reverting to default theme.", "No intellij .theme.json", JOptionPane.ERROR_MESSAGE);
+										JOptionPane.showMessageDialog(StaticWidget.window, "Your intellij .theme.json does not exist, reverting to default theme.", "No intellij .theme.json", JOptionPane.ERROR_MESSAGE);
 									}
 									break;
 								}
@@ -684,9 +785,10 @@ public class TMMain {
 						}
 						catch (Exception e){
 							e.printStackTrace();
+							UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
 						}
-						/* This single and little line fixes the platform UI mode */ SwingUtilities.updateComponentTreeUI(StaticStorageProperties.window);
-						StaticStorageProperties.window.pack();
+						/* This single and little line fixes the platform UI mode */ SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+						StaticWidget.window.pack();
 						
 						RadianceThemingCortex.GlobalScope.registerWidget(
 							     "org.pushingpixels.radiance.theming.extras.api.tabbed.TabHoverPreviewWidget",
@@ -740,7 +842,9 @@ public class TMMain {
 					if(SystemTray.isSupported()) {
 						try {
 							StaticWidget.tray = SystemTray.getSystemTray();
-							StaticWidget.trayicon = new TrayIcon(new ImageIcon(ResourceGet.getURL(TMMain.class, "bkmtmedit.png")).getImage(), "BKMTMEdit");
+							StaticWidget.trayicon = new TrayIcon(new ImageIcon(ResourceGet.getURL(TMMain.class, "bkmtmedit.png")).getImage().getScaledInstance(265, 265, Image.SCALE_DEFAULT), "BKMTMEdit");
+							StaticWidget.trayicon.setImageAutoSize(true);
+							
 							StaticWidget.trayicon.setPopupMenu(StaticWidget.traypop);
 							
 							StaticWidget.tray.add(StaticWidget.trayicon);
@@ -777,7 +881,7 @@ public class TMMain {
 					if(!StaticStorageProperties.logoff)
 						StaticStorageProperties.logger.debug("Running BKMTMEdit");
 
-					StaticStorageProperties.window.setVisible(true);
+					StaticWidget.window.setVisible(true);
 				}
 				catch(OutOfMemoryError oome){
 					th = oome;
@@ -797,7 +901,12 @@ public class TMMain {
 				throw th;
 			}
 			
-			cdl.await();	
+			cdl.await();
+			
+			if(StaticWidget.window instanceof TMSEFM && StaticStorageProperties.SEMode) {
+				TMSEFM tse = (TMSEFM) StaticWidget.window;
+				System.exit(tse.getExit());
+			}
 		/* Basic stuff */	
 		} catch(AssertionError no) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -812,7 +921,7 @@ public class TMMain {
 			}
 			ps.close();
 			System.err.println(msg);
-			StaticWidget.trayicon.displayMessage("Assertion Failure", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Assertion Failure", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has detected a problem durring self-assertion, halt and catch on fire");
 			JOptionPane.showMessageDialog(null, msg, "Assertion Failure during program runtime!", JOptionPane.ERROR_MESSAGE);
 			// Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
@@ -820,17 +929,17 @@ public class TMMain {
 		}
 		/* No */
 		catch(OutOfMemoryError oom) {
-			// StaticWidget.trayicon.displayMessage("Out of Memory! I will ragequit.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			// if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Out of Memory! I will ragequit.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has ran out of memory, halt and catch on fire.");
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has ran out of memory. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(StackOverflowError soe){
-			StaticWidget.trayicon.displayMessage("A stack overflow has occured, ragequitting", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("A stack overflow has occured, ragequitting", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has stAkCk 0Ve3rRFfflo0wed, halt and catch on fire.");
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(VirtualMachineError vme) {
-			StaticWidget.trayicon.displayMessage("I am going to ragequit as fast as I can because the JVM (Java Virtual Machine) is in a teribbly broken state", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("I am going to ragequit as fast as I can because the JVM (Java Virtual Machine) is in a teribbly broken state", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program's JVM (Java Virtual Machine) has experienced an error, halt and catch on fire.");
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + "'s JVM (Java Virtual Machine) has problems. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
@@ -842,13 +951,13 @@ public class TMMain {
 		} 
 		/* Basic Error and Exception */
 		catch(Error err) {
-			StaticWidget.trayicon.displayMessage("A very serious error has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("A very serious error has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced a very serious error, a stack trace will be printed and halt and catch on fire.");
 			err.printStackTrace();
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced a serious error. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(Exception e) {
-			// StaticWidget.trayicon.displayMessage("An exception has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			// if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("An exception has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced an exception, a stack trace will be printed and halt and catch on fire.");
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an exception. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
@@ -856,7 +965,7 @@ public class TMMain {
 		}
 		/* IDK because it's not Error and Exception */
 		catch(Throwable t) {
-			StaticWidget.trayicon.displayMessage("The program has experienced a problem ok.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("The program has experienced a problem ok.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced an throwable (error/exception), halt and catch on fire.");
 			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an unknown throwable (error/exception). \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);

@@ -44,7 +44,7 @@ public class RESTClient extends JDialog {
 	public String URL = "";
 	
 	private HttpClient httpcleint;
-	private HttpResponse<Void> resp;
+	private HttpResponse<String> resp;
 	
 	private String errmsg = "";
 	private boolean requestProceeded = false;
@@ -56,7 +56,7 @@ public class RESTClient extends JDialog {
 	private void doRequest(String url, HttpRequest req) {
 		try {
 			requestProceeded = true;
-			resp = httpcleint.send(req, HttpResponse.BodyHandlers.discarding());
+			resp = httpcleint.send(req, HttpResponse.BodyHandlers.ofString());
 			thisdialog.setVisible(false);
 			
 			URL = url;

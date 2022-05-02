@@ -1,4 +1,4 @@
-Only beanshell, groovy and javascript macros are supported
+Only beanshell, groovy, jruby and javascript macros are supported
 
 Common Text editing API (essential for macros): 
 Editor: the editor component to have power
@@ -19,3 +19,5 @@ Language specific API:
 		bshi: the beanshell interpreter
 	Groovy:
 		GroovySh: the groovyshell engine
+	JRuby:
+		rbse: the ScriptingContainer.

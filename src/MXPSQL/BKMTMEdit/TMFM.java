@@ -30,16 +30,19 @@ import java.net.*;
 import java.awt.*;
 import java.util.*;
 import javax.swing.*;
+// import javax.script.*;
 import javafx.scene.*;
 import java.awt.dnd.*;
 import java.awt.Dialog;
 import java.nio.file.*;
 import java.awt.event.*;
+import org.jruby.embed.*;
 import javax.swing.tree.*;
 import java.util.Optional;
 import javax.swing.event.*;
 import javax.swing.border.*;
 import javafx.embed.swing.*;
+import com.formdev.flatlaf.*;
 import javafx.scene.control.*;
 import java.awt.datatransfer.*;
 import groovy.lang.GroovyShell;
@@ -47,13 +50,18 @@ import org.mozilla.javascript.*;
 import javafx.application.Platform;
 import MXPSQL.BKMTMEdit.reusable.*;
 import MXPSQL.BKMTMEdit.reusable.utils.*;
+import groovy.lang.GroovyRuntimeException;
 import MXPSQL.BKMTMEdit.reusable.widgets.*;
 import org.apache.commons.io.FilenameUtils;
 import java.util.concurrent.CountDownLatch;
+import javax.swing.UIManager.LookAndFeelInfo;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.pushingpixels.radiance.theming.api.skin.*;
 // import MXPSQL.BKMTMEdit.pluginapi.BKMTMEditTabPlugin;
+import org.apache.commons.configuration2.ex.ConversionException;
 import MXPSQL.BKMTMEdit.reusable.widgets.tabs.JClosableTabbedPane;
+import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
 
 
 public class TMFM extends JFrame {
@@ -63,18 +71,43 @@ public class TMFM extends JFrame {
 	private static final long serialVersionUID = 1L;
 	
 	public JTabbedPane rb = new JTabbedPane();
+	public final int rb_main_i = 0;
+	public final int rb_edit_i = 1;
 	
 	public Runnable run;
 	
 	
 	public JSplitPane jsplit;
 	public JClosableTabbedPane tabbedEditor = new JClosableTabbedPane();
+	protected JTabbedPane documentPane;
 	
 	public JLabel filenameLabel;
 	public JLabel caretLabel;
 	
-	
 	public ProgressBar pbar;
+	
+	
+	JPanel statusPanel;
+	
+	
+    protected JMenu jarpluginm;
+    protected JMenu bshpluginm;
+    protected JMenu macromediam;
+    protected JMenu editm;
+    
+    protected JCheckBoxMenuItem rbvisiblemi;
+    protected JCheckBoxMenuItem docpanevisiblemi;
+    protected JCheckBoxMenuItem statusPanelvisiblemi;
+    
+    protected JRadioButtonMenuItem metalthememi;
+	protected JRadioButtonMenuItem platformthememi;
+	protected JRadioButtonMenuItem nimbusthememi;
+	protected JRadioButtonMenuItem flatlightthememi;
+	protected JRadioButtonMenuItem flatdarkthememi;
+	protected JRadioButtonMenuItem flatintellijthememi;
+	protected JRadioButtonMenuItem flatDCMthememi;
+	protected JRadioButtonMenuItem businessblue;
+	protected JRadioButtonMenuItem sahara;
 	
 	int webdoccount = 1;
 	int textdoccount = 1;
@@ -95,9 +128,13 @@ public class TMFM extends JFrame {
     SwingWorker<Void, Object> filechangedworker;
     
     SwingWorker<Void, Void> bshmacroworker;
+    SwingWorker<Void, Void> jsmacroworker;
+    SwingWorker<Void, Void> groovyshellmacroworker;
+    SwingWorker<Void, Void> rbmacroworker;
     
-    protected JMenu jarpluginm;
-    protected JMenu bshpluginm;
+    protected void dispatchExitEvent() {
+    	dispatchEvent(new WindowEvent(dis, WindowEvent.WINDOW_CLOSING));
+    }
 	
 	
 	private void initUI() {
@@ -614,7 +651,7 @@ public class TMFM extends JFrame {
 							@Override
 							public void actionPerformed(ActionEvent e) {
 								// TODO Auto-generated method stub
-								dispatchEvent(new WindowEvent(dis, WindowEvent.WINDOW_CLOSING));
+								dispatchExitEvent();
 							}
 						
 						});
@@ -626,7 +663,7 @@ public class TMFM extends JFrame {
 				}
 
                 {
-                    JMenu editm = new JMenu("Edit");
+                    editm = new JMenu("Edit");
                     mb.add(editm);
                     
                     {
@@ -737,6 +774,47 @@ public class TMFM extends JFrame {
                     }
                     
                     {
+                    	JMenu historym = new JMenu("History");
+                    	
+                    	JMenuItem undomi = new JMenuItem("Undo");
+                    	JMenuItem redomi = new JMenuItem("Redo");
+                    	
+                    	undomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/undo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    	redomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/redo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    	
+    					undomi.addActionListener((e) -> {
+    						if(tabbedEditor.getSelectedIndex() != -1) {
+    							Component comp = tabbedEditor.getSelectedComponent();
+    							
+    							if(comp instanceof TxEditor) {
+    								TxEditor mjfx = (TxEditor) comp;
+    								
+    								mjfx.area.undoLastAction();
+    							}
+    						}
+    					});
+    					
+    					redomi.addActionListener((e) -> {
+    						if(tabbedEditor.getSelectedIndex() != -1) {
+    							Component comp = tabbedEditor.getSelectedComponent();
+    							
+    							if(comp instanceof TxEditor) {
+    								TxEditor mjfx = (TxEditor) comp;
+    								
+    								
+    								
+    								mjfx.area.redoLastAction();
+    							}
+    						}
+    					});
+    					
+    					historym.add(undomi);
+    					historym.add(redomi);
+                    	
+                    	editm.add(historym);
+                    }
+                    
+                    {
                     	JMenu selutilm = new JMenu("Selection Utilities");
                     	
                     	JMenuItem selallmi = new JMenuItem("Select all");
@@ -756,19 +834,196 @@ public class TMFM extends JFrame {
                     	
                     	editm.add(selutilm);
                     }
-                    
-                    {
-                    }
+                }
+                
+                {
+                	JMenu viewm = new JMenu("View");
+                	
+                	{
+                		JMenu componentviewm = new JMenu("Components");
+                		
+                    	rbvisiblemi = new JCheckBoxMenuItem("Show Ribbon");
+                    	docpanevisiblemi = new JCheckBoxMenuItem("Show Document Pane");
+                    	statusPanelvisiblemi = new JCheckBoxMenuItem("Show Status Panel");
+                    	
+                    	rbvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    	docpanevisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    	statusPanelvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    	
+                    	rbvisiblemi.setSelected(true);
+                    	docpanevisiblemi.setSelected(true);
+                    	statusPanelvisiblemi.setSelected(true);
+                    	
+                    	rbvisiblemi.addActionListener((e) -> {
+                    		if(rbvisiblemi.getModel().isSelected()) rb.setVisible(true);
+                    		else rb.setVisible(false);
+                    	});
+                    	
+                    	statusPanelvisiblemi.addActionListener((e) -> {
+                    		if(statusPanelvisiblemi.getModel().isSelected()) statusPanel.setVisible(true);
+                    		else statusPanel.setVisible(false);
+                    	});
+                    	
+                    	docpanevisiblemi.addActionListener((e) -> {
+                    		if(docpanevisiblemi.getModel().isSelected()) jsplit.setLeftComponent(documentPane);
+                    		else jsplit.remove(documentPane);
+                    	});
+                    	
+                    	docpanevisiblemi.setEnabled(false);
+                    	docpanevisiblemi.setToolTipText("It's broken alright. The theme will not change and it's buggy ok.");
+                    	
+                    	componentviewm.add(rbvisiblemi);
+                    	componentviewm.add(docpanevisiblemi);
+                    	componentviewm.add(statusPanelvisiblemi);
+                    	
+                    	viewm.add(componentviewm);
+                	}
+                	
+                	{
+                		JMenu appearancem = new JMenu("Appearance");
+                		
+                		appearancem.setToolTipText("Only few selected themes are available here");
+                		
+                		ButtonGroup bgr = new ButtonGroup();
+                		ButtonGroup pointer = new ButtonGroup();
+                		
+                		// Taal for Theme-Appearance-Action-Listener
+                		ActionListener Taal = new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent e) {
+								// TODO Auto-generated method stub
+								try {
+									switch(e.getActionCommand()) {								
+										case "Metal":
+											UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "System Platform":
+											UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "Nimbus":
+										    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+										        if ("Nimbus".equals(info.getName())) {
+										        	UIManager.setLookAndFeel(info.getClassName());
+										        	SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										            break;
+										        }
+										    }
+											break;
+										case "FlatLaf Light":
+											StaticStorageProperties.logger.info("FlatSYS");
+											UIManager.setLookAndFeel( new FlatLightLaf() );
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "FlatLaf Dark":
+											UIManager.setLookAndFeel( new FlatDarkLaf() );
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "FlatLaf Intellij":
+											UIManager.setLookAndFeel( new FlatIntelliJLaf() );
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "FlatLaf Darcula":
+											UIManager.setLookAndFeel( new FlatDarculaLaf() );
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "Business Blue":
+											RadianceThemingCortex.GlobalScope.setSkin(new BusinessBlueSteelSkin());
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										case "Sahara":
+											RadianceThemingCortex.GlobalScope.setSkin(new SaharaSkin());
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
+										default:
+											StaticStorageProperties.logger.info("No ok 4 theme");
+											break;
+									}
+								} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+										| UnsupportedLookAndFeelException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+									JOptionPane.showMessageDialog(dis, "Failed to set your theme", "Theming failure", JOptionPane.ERROR_MESSAGE);
+								}
+								
+								SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+							}
+                			
+                		};
+                		
+                		metalthememi = new JRadioButtonMenuItem("Metal");
+                		platformthememi = new JRadioButtonMenuItem("System Platform");
+                		nimbusthememi = new JRadioButtonMenuItem("Nimbus");
+                		flatlightthememi = new JRadioButtonMenuItem("FlatLaf Light");
+                		flatdarkthememi = new JRadioButtonMenuItem("FlatLaf Dark");
+                		flatintellijthememi= new JRadioButtonMenuItem("FlatLaf Intellij");
+                		flatDCMthememi = new JRadioButtonMenuItem("FlatLaf Darcula");
+                		businessblue = new JRadioButtonMenuItem("Business Blue");
+                		sahara = new JRadioButtonMenuItem("Sahara");
+                		
+                		metalthememi.addActionListener(Taal);
+                		platformthememi.addActionListener(Taal);
+                		nimbusthememi.addActionListener(Taal);
+                		flatlightthememi.addActionListener(Taal);
+                		flatdarkthememi.addActionListener(Taal);
+                		flatintellijthememi.addActionListener(Taal);
+                		flatDCMthememi.addActionListener(Taal);
+                		businessblue.addActionListener(Taal);
+                		sahara.addActionListener(Taal);
+                		
+                		bgr.add(metalthememi);
+                		bgr.add(platformthememi);
+                		bgr.add(nimbusthememi);
+                		bgr.add(flatlightthememi);
+                		bgr.add(flatdarkthememi);
+                		bgr.add(flatintellijthememi);
+                		bgr.add(flatDCMthememi);
+                		bgr.add(businessblue);
+                		bgr.add(sahara);
+                		
+                		appearancem.add(metalthememi);
+                		appearancem.add(platformthememi);
+                		appearancem.add(nimbusthememi);
+                		appearancem.add(flatlightthememi);
+                		appearancem.add(flatdarkthememi);
+                		appearancem.add(flatintellijthememi);
+                		appearancem.add(flatDCMthememi);
+                		appearancem.add(businessblue);
+                		appearancem.add(sahara);
+                		
+                		// appearancem.setEnabled(false);
+                		
+                		StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+                		switch(StaticStorageProperties.theme) {
+                			case "metal":
+                				metalthememi.setSelected(true);
+                				break;
+                			case "platform":
+                				platformthememi.setSelected(true);
+                				break;
+            				default:
+            					bgr.clearSelection();
+            					break;
+                		}
+                		
+                		viewm.add(appearancem);
+                	}
+                	
+                	mb.add(viewm);
                 }
                 
                 {
                 	JMenu pluginm = new JMenu("Plugins");
+                	pluginm.setEnabled(false);
                 	bshpluginm = new JMenu("Beanshell Plugins");
                 	bshpluginm.setEnabled(false);
                 	
                 	for(Map.Entry<String, String> plugin : StaticStorageProperties.bshPlugins.entrySet()) {
                 		JMenuItem pluginmi = null;
                 		bshpluginm.setEnabled(true);
+                		pluginm.setEnabled(true);
                 		
                 		try {
                 			pluginmi = new JMenuItem(FilenameUtils.getBaseName(new File(plugin.getKey()).getCanonicalFile().getName()));
@@ -813,18 +1068,22 @@ public class TMFM extends JFrame {
                 	JMenuItem bshmacrosmi = new JMenuItem("Run beanshell macros");
                 	JMenuItem rjsmacrosmi = new JMenuItem("Run rhino javascript macros");
                 	JMenuItem groovymacrosmi = new JMenuItem("Run Groovy macros");
+                	JMenuItem rbmi = new JMenuItem("Run Ruby Macros");
                 	JMenuItem opendefaulteditormi = new JMenuItem("Open in default editor");
                 	JMenuItem openindefaultmi = new JMenuItem("Open file in default program");
+                	macromediam = new JMenu("Macros");
                 	
                 	
                 	runtermmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
                 	bshmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
                 	rjsmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
                 	groovymacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK));
+                	rbmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
                 	runtermmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Term.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	bshmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	rjsmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	groovymacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	rbmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
                 	
                 	runtermmi.addActionListener(new ActionListener() {
 
@@ -880,7 +1139,18 @@ public class TMFM extends JFrame {
 						public void actionPerformed(ActionEvent e) {
 							// TODO Auto-generated method stub
 							runUserGroovyMacro();
-						}});
+						}
+					});
+                	
+                	rbmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							runUserRbMacro();
+						}
+                		
+                	});
                 	
                 	opendefaulteditormi.addActionListener(new ActionListener() {
 
@@ -939,9 +1209,11 @@ public class TMFM extends JFrame {
                 	runm.add(runtermmi);
                 	runm.add(browsermi);
                 	runm.addSeparator();
-                	runm.add(bshmacrosmi);
-                	runm.add(rjsmacrosmi);
-                	runm.add(groovymacrosmi);
+                	macromediam.add(bshmacrosmi);
+                	macromediam.add(rjsmacrosmi);
+                	macromediam.add(groovymacrosmi);
+                	macromediam.add(rbmi);
+                	runm.add(macromediam);
                 	runm.addSeparator();
                 	runm.add(opendefaulteditormi);
                 	runm.add(openindefaultmi);
@@ -974,6 +1246,7 @@ public class TMFM extends JFrame {
                 	});
                 	
                 	helpm.add(aboutmi);
+                	helpm.addSeparator();
                 	helpm.add(licensemi);
                 	
                 	mb.add(helpm);
@@ -992,7 +1265,7 @@ public class TMFM extends JFrame {
 	        gbc.weightx = gbc.weighty = 1.0;
 	        gbc.fill = GridBagConstraints.BOTH;
 			
-			JPanel statusPanel = new JPanel(new BorderLayout());
+			statusPanel = new JPanel(new BorderLayout());
 			
 			JFXPanel javafxPanel = new JFXPanel();
 			pbar = new ProgressBar(0);
@@ -1032,8 +1305,8 @@ public class TMFM extends JFrame {
 		
 		
 		{
-			JTabbedPane docPane = new JTabbedPane();
-			new DropTarget(docPane, new FileDND());
+			documentPane = new JTabbedPane();
+			new DropTarget(documentPane, new FileDND());
 			{
 				JPanel fhlpanel = new JPanel(new BorderLayout());
 				JButton refresh = new JButton("Refresh");
@@ -1044,10 +1317,10 @@ public class TMFM extends JFrame {
 				
 				filesHoldList.addListSelectionListener(new List2TabSelectionListener());
 				fhlpanel.add(new JScrollPane(filesHoldList));
-				docPane.add(fhlpanel, "Document List");
+				documentPane.add(fhlpanel, "Document List");
 			}
 			
-			jsplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, docPane, tabbedEditor);
+			jsplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, documentPane, tabbedEditor);
 			new DropTarget(jsplit, new FileDND());
 	        jsplit.setContinuousLayout(true);
 	        jsplit.setOneTouchExpandable(true);
@@ -1428,7 +1701,7 @@ public class TMFM extends JFrame {
 				ftreepanel.add(refreshftree, BorderLayout.NORTH);
 				ftreepanel.add(new JScrollPane(ftree));
 				
-				docPane.add(ftreepanel, "Filesystem Manager");
+				documentPane.add(ftreepanel, "Filesystem Manager");
 			}
 			
 			try {
@@ -1510,17 +1783,17 @@ public class TMFM extends JFrame {
 			StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
 			if(StaticStorageProperties.theme.equals("platform"))
 				tabbedEditor.offsetDim = new int[] {5, 0};
-			tabbedEditor.tocl = (intd) -> {
-				try {
-					closeCurrentTab(false);
-					return true;
-				}
-				catch(IOException ioe) {
-					return false;
-				}
-				catch(InterruptedException ite) {
-					return false;
-				}
+				tabbedEditor.tocl = (intd) -> {
+					try {
+						closeCurrentTab(false);
+						return true;
+					}
+					catch(IOException ioe) {
+						return false;
+					}
+					catch(InterruptedException ite) {
+						return false;
+					}
 			};
 			
 			{
@@ -1536,7 +1809,7 @@ public class TMFM extends JFrame {
 					open_file();
 				});
 				
-				exitmi.addActionListener((e) -> dispatchEvent(new WindowEvent(dis, WindowEvent.WINDOW_CLOSING)));
+				exitmi.addActionListener((e) -> dispatchExitEvent());
 				
 				StaticWidget.traypop.add(openmi);
 				StaticWidget.traypop.addSeparator();
@@ -1545,6 +1818,32 @@ public class TMFM extends JFrame {
 				StaticWidget.traypop.add(exitmi);
 			}
 		}
+		
+    	{
+    		try {
+    			if(!StaticStorageProperties.config.getBoolean("visibility.ribbon", true)) rbvisiblemi.doClick();
+    		}
+    		catch(ConversionException ce) {
+    			StaticStorageProperties.logger.info("Invalid value for visibility.ribbon");
+    			// ce.printStackTrace();
+    		}
+    		
+    		/* try {
+    			if(!StaticStorageProperties.config.getBoolean("visibility.documentpane", true)) docpanevisiblemi.doClick();
+    		}
+    		catch(ConversionException ce) {	
+    			StaticStorageProperties.logger.info("Invalid value for visibility.documentpane");
+    			ce.printStackTrace();
+    		} */
+    		
+    		try {
+    			if(!StaticStorageProperties.config.getBoolean("visibility.statusbar", true)) statusPanelvisiblemi.doClick();
+    		}
+    		catch(ConversionException ce) {
+    			StaticStorageProperties.logger.info("Invalid value for visibikity.statusbar");
+    			// ce.printStackTrace();
+    		}
+    	}
 	}
 
 	public TMFM(String title, Runnable run) {
@@ -1559,6 +1858,8 @@ public class TMFM extends JFrame {
 		filechangedworker.execute();
 		
 		new DropTarget(dis, new FileDND());
+		
+		// runRbMacro("nonexistent.to_non_existent(nonext2)");
 		
         addWindowListener(new WindowListener() {
 
@@ -1695,6 +1996,8 @@ public class TMFM extends JFrame {
 
                 // We have to add one here because line numbers start at 0 for getLineOfOffset and we want it to start at 1 for display.
                 linenum += 1;
+                
+                columnnum += 1;
             }
             catch(Exception ex) { }
             
@@ -1713,12 +2016,35 @@ public class TMFM extends JFrame {
             	int selindex = tabbedEditor.getSelectedIndex();
             	
             	Component comp = tabbedEditor.getSelectedComponent();
+            	
+            	if(comp instanceof TxEditor) {
+            		macromediam.setEnabled(true);
+            		editm.setEnabled(true);
+            		
+            		try {
+            			rb.setEnabledAt(rb_edit_i, true);
+            			rb.setSelectedIndex(rb_main_i);
+            		}
+            		catch(IndexOutOfBoundsException ioobe) {;}
+            	}
+            	else {
+            		macromediam.setEnabled(false);
+            		editm.setEnabled(false);
+            		
+            		try {
+            			rb.setEnabledAt(rb_edit_i, false);
+            			rb.setSelectedIndex(rb_main_i);
+            		}
+            		catch(IndexOutOfBoundsException ioobe) {;}
+            	}
+            	
             	if(comp instanceof TxEditor) {
             		TxEditor jfxcomp = (TxEditor) comp;
             		if(!jfxcomp.filePath.isBlank() && !jfxcomp.filePath.isEmpty())
             			filenameLabel.setText(new File(jfxcomp.filePath).getName());
             		else
             			filenameLabel.setText(jfxcomp.docName);
+            		
             	}
             	else if(comp instanceof SwingWebkitWebBrowser){
             		filenameLabel.setText("A web browser lol/");
@@ -1739,6 +2065,14 @@ public class TMFM extends JFrame {
             	Random rand = new Random();
             	int choose = rand.nextInt(TexyHolder.nololmsgs.length);
             	filenameLabel.setText(TexyHolder.nololmsgs[choose] + "/");
+        		macromediam.setEnabled(false);
+        		editm.setEnabled(false);
+        		
+        		try {
+        			rb.setEnabledAt(rb_edit_i, false);
+        			rb.setSelectedIndex(rb_main_i);
+        		}
+        		catch(IndexOutOfBoundsException ioobe) {;}
             }
             
             refreshList();
@@ -2312,23 +2646,40 @@ public class TMFM extends JFrame {
 				protected Void doInBackground() throws Exception {
 					// TODO Auto-generated method stub
 					
-					try {
-						i.set("bshi", i);
-						i.set("Macro", macro);
-						i.set("Out", System.out);
-						i.set("Err", System.err);
-						
-						i.set("Editor", mjfx);
-						i.set("CaretPosition", mjfx.area.getCaretPosition());
-						i.set("CurrentText", mjfx.getText());
+					i.set("bshi", i);
+					i.set("Macro", macro);
+					i.set("Out", System.out);
+					i.set("Err", System.err);
+					
+					i.set("Editor", mjfx);
+					i.set("CaretPosition", mjfx.area.getCaretPosition());
+					i.set("CurrentText", mjfx.getText());
+					
+					try{
 						i.eval(macro);
-						
-						if(!mjfx.getText().equals(oldtext))
-							markChanged();
-					} catch (EvalError e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
 					}
+					catch(OutOfMemoryError oome) {
+						StaticStorageProperties.logger.error("Wow, your beanshell script ran out of memory you can of tuna.");
+						oome.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your beanshell script ran out of memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your beanshell/bsh script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(EvalError ee) {
+						StaticStorageProperties.logger.error("Bsh has errored out");
+						ee.printStackTrace();
+						// JOptionPane.showMessageDialog(dis, "Your script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Calm down on your keymashed Beanshell macros, it has erorrs.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your beanshell script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(Throwable t) {
+						StaticStorageProperties.logger.error("Runtime error on beanshell");
+						t.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your BSH script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your beanshell script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+					}
+					
+					if(!mjfx.getText().equals(oldtext))
+						markChanged();
 					
 					Platform.runLater(() -> pbar.setProgress(0));
 					
@@ -2361,38 +2712,79 @@ public class TMFM extends JFrame {
 	}
 	
 	public void runRhinoJSMacro(String code) {
-		Context ctx = new ContextFactory().enterContext();
 		StaticStorageProperties.logger.info("Run a rhino js macros");
+		
+		if(jsmacroworker != null) {
+			jsmacroworker.cancel(true);
+		}
+		
+		jsmacroworker = null;
 		
 		Platform.runLater(() -> pbar.setProgress(0));
 		
-		if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
-			TxEditor mjfx = ((TxEditor) tabbedEditor.getSelectedComponent());
-			String oldtext = mjfx.getText();
+		jsmacroworker = new SwingWorker<Void, Void>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				// TODO Auto-generated method stub
+				Context ctx = new ContextFactory().enterContext(); 
+				if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
+					TxEditor mjfx = ((TxEditor) tabbedEditor.getSelectedComponent());
+					String oldtext = mjfx.getText();
+					
+					Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
+					StaticStorageProperties.logger.info("Running rhino js macros");
+					
+					Scriptable scope = ctx.initStandardObjects();
+					/*
+var a = CurrentText;
+for(var i = 0; i < 1501; i++){
+	a += CurrentText;
+}
+
+Editor.setText(a);
+					 */
+					
+					ScriptableObject.putProperty(scope, "Rhino", Context.javaToJS(ctx, scope));
+					ScriptableObject.putProperty(scope, "Out", Context.javaToJS(System.out, scope));
+					ScriptableObject.putProperty(scope, "Err", Context.javaToJS(System.err, scope));
+					
+					ScriptableObject.putProperty(scope, "CurrentText", Context.javaToJS(oldtext, scope));
+					ScriptableObject.putProperty(scope, "CaretPosition", Context.javaToJS(mjfx.area.getCaretPosition(), scope));
+					ScriptableObject.putProperty(scope, "Editor", Context.javaToJS(mjfx, scope));
+					
+					ScriptableObject.putProperty(scope, "Macro", Context.javaToJS(code, scope)); 
+					
+					try{
+						ctx.evaluateString(scope, code, "memscript.jsn", 5, null);
+					}
+					catch(EcmaError ece) {
+						StaticStorageProperties.logger.error("Javascript has errored out lol");
+						ece.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your javascript macro has errors in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your rhino javascript script (yes ik) is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(Throwable t) {
+						StaticStorageProperties.logger.error("Runtime error on JavaScript");
+						t.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JS script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your JavaScript script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+					}
+					
+					StaticStorageProperties.logger.info("Done running rhino js macros");
+					
+					Platform.runLater(() -> pbar.setProgress(0));
+					
+				}
+				
+				Context.exit();
+				
+				return null;
+			}
 			
-			Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
-			StaticStorageProperties.logger.info("Running rhino js macros");
-			
-			Scriptable scope = ctx.initStandardObjects();
-			
-			ScriptableObject.putProperty(scope, "Rhino", Context.javaToJS(ctx, scope));
-			ScriptableObject.putProperty(scope, "Out", Context.javaToJS(System.out, scope));
-			ScriptableObject.putProperty(scope, "Err", Context.javaToJS(System.err, scope));
-			
-			ScriptableObject.putProperty(scope, "CurrentText", Context.javaToJS(oldtext, scope));
-			ScriptableObject.putProperty(scope, "CaretPosition", Context.javaToJS(mjfx.area.getCaretPosition(), scope));
-			ScriptableObject.putProperty(scope, "Editor", Context.javaToJS(mjfx, scope));
-			
-			ScriptableObject.putProperty(scope, "Macro", Context.javaToJS(code, scope)); 
-			
-			ctx.evaluateString(scope, code, "script.jsn", 5, null);
-			StaticStorageProperties.logger.info("Done running rhino js macros");
-			
-			Platform.runLater(() -> pbar.setProgress(0));
-			
-		}
+		};
 		
-		Context.exit();
+		jsmacroworker.execute();
 	}
 	
 	public void runUserGroovyMacro() {
@@ -2415,34 +2807,154 @@ public class TMFM extends JFrame {
 	
 	public void runGroovyMacro(String macro) {
 		StaticStorageProperties.logger.info("Starting to run Apache Groovy Macros");
-		GroovyShell gsh = new GroovyShell();
-		
-		if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
-			Platform.runLater(() -> pbar.setProgress(0));
-			
-			Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
-			StaticStorageProperties.logger.info("Running Apache Groovy Macros");
-			
-			TxEditor mjfx = ((TxEditor) tabbedEditor.getSelectedComponent());
-			String oldtext = mjfx.getText();
-			
-			gsh.setVariable("Editor", mjfx);
-			gsh.setVariable("CaretPosition", mjfx.area.getCaretPosition());
-			gsh.setVariable("CurrentText", oldtext);
-			
-			gsh.setVariable("Out", System.out);
-			gsh.setVariable("Err", System.err);
-			
-			gsh.setVariable("Macro", macro);
-			
-			gsh.setVariable("GroovySh", gsh);
-			
-			gsh.evaluate(macro);
-			
-			StaticStorageProperties.logger.info("Finished running Apache Groovy Macros");
-			
-			Platform.runLater(() -> pbar.setProgress(0));
+		if(groovyshellmacroworker != null) {
+			groovyshellmacroworker.cancel(true);
 		}
+		
+		groovyshellmacroworker = null;
+		
+		groovyshellmacroworker = new SwingWorker<Void, Void>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				// TODO Auto-generated method stub
+				GroovyShell gsh = new GroovyShell(TMMain.class.getClassLoader());
+				
+				if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
+					Platform.runLater(() -> pbar.setProgress(0));
+					
+					Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
+					StaticStorageProperties.logger.info("Running Apache Groovy Macros");
+					
+					TxEditor mjfx = ((TxEditor) tabbedEditor.getSelectedComponent());
+					String oldtext = mjfx.getText();
+					
+					gsh.setVariable("Editor", mjfx);
+					gsh.setVariable("CaretPosition", mjfx.area.getCaretPosition());
+					gsh.setVariable("CurrentText", oldtext);
+					
+					gsh.setVariable("Out", System.out);
+					gsh.setVariable("Err", System.err);
+					
+					gsh.setVariable("Macro", macro);
+					
+					gsh.setVariable("GroovySh", gsh);
+					
+					try{
+						gsh.evaluate(macro);
+					}
+					catch(OutOfMemoryError oome) {
+						StaticStorageProperties.logger.error("Wow, your groovy script ran out of memory you can of tuna.");
+						oome.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your groovy ran out of memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your groovy script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(GroovyRuntimeException e) {
+						StaticStorageProperties.logger.error("Groovy has errored out");
+						e.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your groovy script has errors in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your groovy script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(Throwable t) {
+						StaticStorageProperties.logger.error("Runtime error on groovy");
+						t.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your Groovy script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your groovy script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+					}
+					
+					StaticStorageProperties.logger.info("Finished running Apache Groovy Macros");
+					
+					Platform.runLater(() -> pbar.setProgress(0));
+				}
+				return null;
+			}
+		};
+		
+		groovyshellmacroworker.execute();;
+	}
+	
+	public void runUserRbMacro() {
+		AskInputDialog rbi = new AskInputDialog(dis, "JRuby Macros", StaticStorageProperties.groovyMacros);
+		rbi.setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
+		
+		String input = rbi.getInput();
+		
+		if(input == null)
+			return;
+		
+		int r = JOptionPane.YES_OPTION;
+		
+		if(StaticStorageProperties.remimdMeAboutMacroSafety)
+			r = JOptionPane.showConfirmDialog(dis, "Are you sure about running that? It may be dangerous. \nIt can wipe your drive, \nsend your files somewhere or \nsend your computer's soul to someone's dining hall. \nWho knows, your computer may have you as it's dinner if you run the macro. \nThe point is not to trust any macros from the internet unless you checked it yourself \n(the can delete your drive and ruin your life).", "Watch Out!", JOptionPane.YES_NO_OPTION);
+		
+		if(r == JOptionPane.YES_OPTION)
+			runRbMacro(input);
+	}
+	
+	public void runRbMacro(String macro) {
+		StaticStorageProperties.logger.info("Starting to run JRuby Macros");
+		if(rbmacroworker != null) {
+			rbmacroworker.cancel(true);
+		}
+		
+		rbmacroworker=null;
+		
+		rbmacroworker = new SwingWorker<Void, Void>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				// TODO Auto-generated method stub
+				if(tabbedEditor.getSelectedComponent() instanceof TxEditor) {
+					TxEditor tx = (TxEditor) tabbedEditor.getSelectedComponent();
+					Platform.runLater(() -> pbar.setProgress(0));
+					ScriptingContainer rbse = new ScriptingContainer();
+					rbse.put("rbse", rbse);
+					
+					rbse.put("Editor", tx);
+					rbse.put("CaretPosition", tx.area.getCaretPosition());
+					rbse.put("CurrentText", tx.getText());
+					
+					rbse.put("Out", System.out);
+					rbse.put("Err", System.err);
+					
+					rbse.put("Macro", macro);
+					
+					try {
+						rbse.runScriptlet(macro);
+					}
+					catch(OutOfMemoryError oome) {
+						/* StaticStorageProperties.logger.error("Wow, you ran out of memory you can of tuna.");
+						oome.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("You ran out mf memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your groovy script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE); */
+						StaticStorageProperties.logger.error("Wow, your ruby script ran out of memory you can of tuna.");
+						oome.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your ruby script ran out mf memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your ruby script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(EvalFailedException e) {
+						StaticStorageProperties.logger.error("Ruby has errored out");
+						e.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JRuby script has error in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your ruby script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+					}
+					catch(Throwable t) {
+						StaticStorageProperties.logger.error("Runtime error on ruby");
+						t.printStackTrace();
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JRuby script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+						JOptionPane.showMessageDialog(dis, "Your ruby script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+					}
+					
+					StaticStorageProperties.logger.info("Finished running JRuby Macros");
+					
+					Platform.runLater(() -> pbar.setProgress(0));
+				}
+				return null;
+			}
+			
+		};
+		
+		rbmacroworker.execute();
 	}
     
     void insertUser() {

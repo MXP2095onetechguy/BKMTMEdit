@@ -13,6 +13,13 @@ When you run:
 
 	Notes during saving:
 	Saving as HTML will always use the .html extension
+	
+	You can also run the editor in SE Mode (Stdout Editor mode), what happens in that mode:
+	The editor will show an editor with ok and cancel button.
+	Clicking OK will print the text to Stdout and it will return 0.
+	Clicking Cancel will not print the text and it will return 1.
+	This means you can put it on an if/else statement.
+	Example: 'java -jar BKMTMEdit.jar -se > doc.txt 2> /dev/null;'
 
 When you edit the config:
 TBA

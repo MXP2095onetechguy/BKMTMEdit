@@ -27,6 +27,7 @@ SOFTWARE.
 import java.awt.*;
 import javax.swing.*;
 import java.util.List;
+import java.util.Optional;
 import org.fife.rsta.ui.*;
 import java.util.ArrayList;
 import org.fife.ui.rtextarea.*;
@@ -51,10 +52,43 @@ public class TxEditor extends JInternalFrame {
 	
 	protected RTextScrollPane rsp;
 	
+	private TxEditor dis = this;
+	
 	public TxEditor(Frame winparent, List<String> languages) {
 		area = new TextEditorPane();
 		area.setCodeFoldingEnabled(true);
 		area.setMarkOccurrences(true);
+		
+		{
+			JMenuBar mb = new JMenuBar();
+			
+			{
+				JMenu view = new JMenu("View");
+				
+				JMenuItem font = new JMenuItem("Font");
+				JMenuItem bcolor = new JMenuItem("Background Color");
+				
+				font.addActionListener((e) -> {
+					FontDialog d = new FontDialog(winparent, area);
+					d.setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
+					d.setVisible(true);
+					Optional<Font> f = d.get();
+					if(f.isPresent()) area.setFont(f.get());
+				});;
+				
+				bcolor.addActionListener((e) -> {
+					Color c = JColorChooser.showDialog(dis, "Choose a background color", area.getBackground());
+					if(c != null) area.setBackground(c);
+				});
+				
+				view.add(font);
+				view.add(bcolor);
+				
+				mb.add(view);
+			}
+			
+			setJMenuBar(mb);
+		}
 		
 		CollapsibleSectionPanel csp = new CollapsibleSectionPanel();
 		rsp = new RTextScrollPane(area);

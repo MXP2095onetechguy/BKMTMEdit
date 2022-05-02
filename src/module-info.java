@@ -53,22 +53,24 @@ module MXPSQL.BKMTMEdit {
 	
 	// slf4j
 	requires transitive org.slf4j;
-	requires transitive org.slf4j.simple;
+	// requires transitive org.slf4j.simple;
 	
 	// jetty
 	requires transitive org.eclipse.jetty.http;
 	requires transitive org.eclipse.jetty.util;
 	requires transitive org.eclipse.jetty.server;
 	
+	// scripting languages yeh!
+	// 
 	// beanshell
 	requires transitive bsh;
-	
 	// groovy yay!
 	requires transitive org.codehaus.groovy;
-	
 	// rhino
 	requires transitive org.mozilla.rhino;
 	requires transitive org.mozilla.rhino.engine;
+	// jruby?
+	requires transitive org.jruby.complete;
 	
 	// zip4j
 	requires transitive zip4j;
@@ -101,7 +103,7 @@ module MXPSQL.BKMTMEdit {
 	requires transitive org.pushingpixels.radiance.theming.extras;
 	
 	// term
-	requires transitive com.googlecode.lanterna;	
+	// requires transitive com.googlecode.lanterna;	
 	
 	// export
 	exports MXPSQL.BKMTMEdit.reusable;
