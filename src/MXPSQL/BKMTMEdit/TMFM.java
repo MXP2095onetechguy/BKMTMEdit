@@ -949,6 +949,24 @@ public class TMFM extends JFrame {
 								}
 								
 								SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+								
+								// prevents anything funny from happening if you switch from the radiance theme to the flatlaf themes
+								// Funny things that happen: the ui becomes garbage and an exception is thrown, we don't want that funny thing
+								switch(e.getActionCommand()) {
+									case "Business Blue":
+									case "Sahara":
+										flatlightthememi.setEnabled(false);
+										flatdarkthememi.setEnabled(false);
+										flatintellijthememi.setEnabled(false);
+										flatDCMthememi.setEnabled(false);
+										break;
+									default:
+										flatlightthememi.setEnabled(true);
+										flatdarkthememi.setEnabled(true);
+										flatintellijthememi.setEnabled(true);
+										flatDCMthememi.setEnabled(true);
+										break;
+								}
 							}
                 			
                 		};
