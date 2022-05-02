@@ -106,6 +106,7 @@ public class TMFM extends JFrame {
 	protected JRadioButtonMenuItem flatdarkthememi;
 	protected JRadioButtonMenuItem flatintellijthememi;
 	protected JRadioButtonMenuItem flatDCMthememi;
+	protected JRadioButtonMenuItem business;
 	protected JRadioButtonMenuItem businessblue;
 	protected JRadioButtonMenuItem sahara;
 	
@@ -885,7 +886,7 @@ public class TMFM extends JFrame {
                 		appearancem.setToolTipText("Only few selected themes are available here");
                 		
                 		ButtonGroup bgr = new ButtonGroup();
-                		ButtonGroup pointer = new ButtonGroup();
+                		// ButtonGroup pointer = new ButtonGroup();
                 		
                 		// Taal for Theme-Appearance-Action-Listener
                 		ActionListener Taal = new ActionListener() {
@@ -929,6 +930,10 @@ public class TMFM extends JFrame {
 											UIManager.setLookAndFeel( new FlatDarculaLaf() );
 											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
 											break;
+										case "Business":
+											RadianceThemingCortex.GlobalScope.setSkin(new BusinessSkin());
+											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+											break;
 										case "Business Blue":
 											RadianceThemingCortex.GlobalScope.setSkin(new BusinessBlueSteelSkin());
 											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
@@ -951,8 +956,9 @@ public class TMFM extends JFrame {
 								SwingUtilities.updateComponentTreeUI(StaticWidget.window);
 								
 								// prevents anything funny from happening if you switch from the radiance theme to the flatlaf themes
-								// Funny things that happen: the ui becomes garbage and an exception is thrown, we don't want that funny thing
+								// Funny things that happen: the UI becomes garbage and an exception is thrown, we don't want that funny thing
 								switch(e.getActionCommand()) {
+									case "Business":
 									case "Business Blue":
 									case "Sahara":
 										flatlightthememi.setEnabled(false);
@@ -978,6 +984,7 @@ public class TMFM extends JFrame {
                 		flatdarkthememi = new JRadioButtonMenuItem("FlatLaf Dark");
                 		flatintellijthememi= new JRadioButtonMenuItem("FlatLaf Intellij");
                 		flatDCMthememi = new JRadioButtonMenuItem("FlatLaf Darcula");
+                		business = new JRadioButtonMenuItem("Business");
                 		businessblue = new JRadioButtonMenuItem("Business Blue");
                 		sahara = new JRadioButtonMenuItem("Sahara");
                 		
@@ -988,6 +995,7 @@ public class TMFM extends JFrame {
                 		flatdarkthememi.addActionListener(Taal);
                 		flatintellijthememi.addActionListener(Taal);
                 		flatDCMthememi.addActionListener(Taal);
+                		business.addActionListener(Taal);
                 		businessblue.addActionListener(Taal);
                 		sahara.addActionListener(Taal);
                 		
@@ -998,16 +1006,20 @@ public class TMFM extends JFrame {
                 		bgr.add(flatdarkthememi);
                 		bgr.add(flatintellijthememi);
                 		bgr.add(flatDCMthememi);
+                		bgr.add(business);
                 		bgr.add(businessblue);
                 		bgr.add(sahara);
                 		
                 		appearancem.add(metalthememi);
                 		appearancem.add(platformthememi);
                 		appearancem.add(nimbusthememi);
+                		appearancem.addSeparator();
                 		appearancem.add(flatlightthememi);
                 		appearancem.add(flatdarkthememi);
                 		appearancem.add(flatintellijthememi);
                 		appearancem.add(flatDCMthememi);
+                		appearancem.addSeparator();
+                		appearancem.add(business);
                 		appearancem.add(businessblue);
                 		appearancem.add(sahara);
                 		
