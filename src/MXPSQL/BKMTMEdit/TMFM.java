@@ -646,7 +646,8 @@ public class TMFM extends JFrame {
 					{
 						JMenuItem exitmi = new JMenuItem("Exit");
 						exitmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Exit.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-					
+						exitmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK+InputEvent.ALT_DOWN_MASK));
+						
 						exitmi.addActionListener(new ActionListener() {
 
 							@Override
@@ -1251,6 +1252,8 @@ public class TMFM extends JFrame {
                 	mb.add(runm);
                 }
                 
+                mb.add(Box.createHorizontalGlue());
+                
                 {
                 	JMenu helpm = new JMenu("Help");
                 	
@@ -1296,6 +1299,7 @@ public class TMFM extends JFrame {
 	        gbc.fill = GridBagConstraints.BOTH;
 			
 			statusPanel = new JPanel(new BorderLayout());
+			statusPanel.setBorder(BorderFactory.createEtchedBorder());
 			
 			JFXPanel javafxPanel = new JFXPanel();
 			pbar = new ProgressBar(0);
