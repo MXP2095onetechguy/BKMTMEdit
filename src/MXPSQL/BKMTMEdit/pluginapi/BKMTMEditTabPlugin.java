@@ -35,8 +35,16 @@ public abstract class BKMTMEditTabPlugin {
 		return "Hello from " + getName();
 	}
 	
+	/**
+	 * Name for tab and menu
+	 * @return the string (name)
+	 */
 	public abstract String getTabAndMenuName();
 	
+	/**
+	 * Create your UI here and create the logic here too.
+	 * @return your JPanel with your UI
+	 */
 	public abstract JPanel initUIandLogic();
 	
 	public String getName() {

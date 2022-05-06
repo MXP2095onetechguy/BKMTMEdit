@@ -43,6 +43,9 @@ module MXPSQL.BKMTMEdit {
 	requires transitive javafx.graphics;
 	requires transitive javafx.controls;
 	
+	// swingx
+	requires transitive swingx;
+	
 	// argparse4j
 	requires transitive net.sourceforge.argparse4j;
 	

@@ -1,6 +1,6 @@
 # BKMTMEdit
 
-A text editor. Written in **Java** using Swing and *JavaFX*.
+A text editor. Written in **Java** using Swing, AWT, SwingX and *JavaFX*.
 
 A bigger brother to TkEdit (A text editor written in python and tkinter).
 

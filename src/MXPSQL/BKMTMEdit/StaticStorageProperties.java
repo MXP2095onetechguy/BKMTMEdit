@@ -49,13 +49,14 @@ public class StaticStorageProperties {
 	public static final String source = "https://github.com/MXP2095onetechguy/BKMTMEdit";
 	
 	// the,e
-	public static final String defaultTheme = "metal";
+	public static final String defaultTheme = "flatintellijlaf";
 	public static String theme = defaultTheme;
 	public static File synthloc = null;
 	public static File intellijson = null;
 	
 	// editors
-	public static final String baseTitle = "BKMTMEdit (Better Kate-Middleton The MXPSQL Editor)";
+	public static final String baseName = "BKMTMEdit";
+	public static final String baseTitle = baseName + " (Better Kate-Middleton The MXPSQL Editor)";
 	public static Map<String, String> bshMacros = new HashMap<String, String>();
 	public static Map<String, String> rhinoJSMacros = new HashMap<String, String>();
 	public static Map<String, String> groovyMacros = new HashMap<String, String>();

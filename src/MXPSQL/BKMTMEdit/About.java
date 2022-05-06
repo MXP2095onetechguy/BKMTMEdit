@@ -27,61 +27,75 @@ SOFTWARE.
 
 import java.awt.*;
 import javax.swing.*;
-import MXPSQL.BKMTMEdit.reusable.widgets.HyperLink;
+import MXPSQL.BKMTMEdit.reusable.widgets.*;
 
 
 /* completley made with AWT LOL unliek the rest, which is made in swing */
-public class About extends JDialog {
+public class About extends AboutDialog {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	protected About dis = this;
 	
-	void initUI() {
+	void initUIAgain() {
+		JPanel bugPane = new JPanel(new BorderLayout());
 		{
-			JPanel pane = new JPanel(new BorderLayout());
-			{
-				JLabel title = new JLabel(StaticStorageProperties.baseTitle);
-				pane.add(title, BorderLayout.NORTH);
-			}
+			JTextArea tarea = new JTextArea();
 			
 			{
-				
-				JLabel image = new JLabel(new ImageIcon(new ImageIcon(this.getClass().getResource("bkmtmedit.png")).getImage().getScaledInstance(256, 256, Image.SCALE_DEFAULT)));
-				image.setToolTipText("Actual Logo");
-				
-				pane.add(image);
+				StringBuilder sb = new StringBuilder();
+				sb.append("A JVM based text editor. \n\n")
+				.append("Written in Swing, SwingX, AWT and JavaFX using Java 11 \nand the Java programming language. \n\n")
+				.append("Open source under the MIT License. \n\n")
+				.append("Currently at version ").append(StaticStorageProperties.version.toString()).append(". ");
+				tarea.setText(sb.toString());
 			}
 			
-			{
-				JLabel desc = new JLabel("");
-				desc.setText("<html>hEY, this is a text editor. Written in Java using Swing, AWT and JavaFX (SWT planned, but broken if I use it). <br>You know, this is actualy open source, under MIT License, you can visit the source with the button below. <br>Version " + StaticStorageProperties.version.toString() + ".</html>");
-				pane.add(desc, BorderLayout.SOUTH);
-			}
+			tarea.setEditable(false);
 			
-			add(pane, BorderLayout.NORTH);
+			bugPane.add(new JScrollPane(tarea), BorderLayout.CENTER);
 		}
 		
 		{
 			JButton takemeto = new HyperLink(StaticStorageProperties.source, "Take me to the IDotic source PLSSSSS :(((((( NO WHYYYYYYYY I WANT TO SEE IT PLSSSSSSSSSS!");
-			add(takemeto);
+			bugPane.add(takemeto, BorderLayout.SOUTH);
 		}
 		
+		setInfoPanel(bugPane);
+		
+		header.setIcon(new ImageIcon(new ImageIcon(this.getClass().getResource("bkmtmedit.png")).getImage().getScaledInstance(64, 64, Image.SCALE_DEFAULT)));
+		header.setTitle(StaticStorageProperties.baseName);
+		header.setDescription("A java based text editor, written in AWT, Swing and JavaFX using Java 11.");
+		
 		{
-			JButton close = new JButton("Close");
-			close.addActionListener((e) -> {
-				dis.dispose();
-			});
-			add(close, BorderLayout.SOUTH);
+			StringBuilder sb = new StringBuilder();
+			
+			sb.append("There is a lot of libraries to talk about here, so because of that, I will not talk everything here, ").append("\n").append("but you can go to the source and read pom.xml to see the libraries used.").append("\n")
+			.append("\n")
+			.append("These UI Libraries: ").append("\n")
+			.append("JavaFX version 11 is used, Licensed under GPL with linking exception").append("\n")
+			.append("SwingX (Part of SwingLabs), Licensed under LGPL").append("\n")
+			.append("Could have used SWT, but it's broken. Licensed under the EPL").append("\n")
+			.append("RSyntaxTextArea is also used, licensed under the 3-Clause BSD License").append("\n")
+			.append("FlatLaf is used for the theme, licensed under the Apache-2.0 License").append("\n")
+			.append("Radiance for the theme too, licensed under the 3-Clause BSD License").append("\n")
+			.append("\n")
+			.append("These scripting languages: ").append("\n")
+			.append("Beanshell, licensed under the Apache-2.0 License").append("\n")
+			.append("Rhino (the javascript engine), licensed under the MPL-2.0 License").append("\n")
+			.append("Groovy, licensed under the Apache-2.0 License").append("\n")
+			.append("JRuby, licensed under 3 license (EPL, LGPL and GPL), but I choose the EPL");
+			
+			setAttrsText(sb.toString());
 		}
 	}
 	
 	public About(Frame parent) {
 		super(parent, "About " + StaticStorageProperties.baseTitle, true);
 		
-		initUI();
-		pack();
+		initUIAgain();
+		setSize(600, 500);
 		setResizable(false);
 	}
 }

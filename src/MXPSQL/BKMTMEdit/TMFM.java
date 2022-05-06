@@ -39,16 +39,20 @@ import java.awt.event.*;
 import org.jruby.embed.*;
 import javax.swing.tree.*;
 import java.util.Optional;
+import java.util.logging.*;
 import javax.swing.event.*;
 import javax.swing.border.*;
 import javafx.embed.swing.*;
+import org.jdesktop.swingx.*;
 import com.formdev.flatlaf.*;
 import javafx.scene.control.*;
 import java.awt.datatransfer.*;
 import groovy.lang.GroovyShell;
 import org.mozilla.javascript.*;
+import org.jdesktop.swingx.tips.*;
 import javafx.application.Platform;
 import MXPSQL.BKMTMEdit.reusable.*;
+import org.jdesktop.swingx.error.*;
 import MXPSQL.BKMTMEdit.reusable.utils.*;
 import groovy.lang.GroovyRuntimeException;
 import MXPSQL.BKMTMEdit.reusable.widgets.*;
@@ -253,7 +257,8 @@ public class TMFM extends JFrame {
 							}
 						}
 						catch(IOException ioe) {
-							JOptionPane.showMessageDialog(dis, "Um, No", "nO", JOptionPane.ERROR_MESSAGE);
+							ioe.printStackTrace();
+							JXErrorPane.showDialog(dis, new ErrorInfo("Info IO Error", "An IOException had occured", "An IOException has occured while getting information\nabout the file.", "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
 						}
 					}
 					
@@ -574,7 +579,8 @@ public class TMFM extends JFrame {
 								getInfoDialog(new File(editor.filePath));
 							}
 							catch(IOException ioe) {
-								JOptionPane.showMessageDialog(dis, "Um, No", "nO", JOptionPane.ERROR_MESSAGE);
+								ioe.printStackTrace();
+								JXErrorPane.showDialog(dis, new ErrorInfo("IO Error", "An IOException had occured", "An IOException has occured while creating the dialog", "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
 							}
 						});
 						
@@ -951,7 +957,7 @@ public class TMFM extends JFrame {
 										| UnsupportedLookAndFeelException e1) {
 									// TODO Auto-generated catch block
 									e1.printStackTrace();
-									JOptionPane.showMessageDialog(dis, "Failed to set your theme", "Theming failure", JOptionPane.ERROR_MESSAGE);
+									JXErrorPane.showDialog(dis, new ErrorInfo("Theming problem", "A problem had occured trying to theme", "The problem occured while switching \ntheme due to that theme being available or unsupported", "Theme Error", e1, Level.WARNING, new HashMap<String, String>()));
 								}
 								
 								SwingUtilities.updateComponentTreeUI(StaticWidget.window);
@@ -1034,7 +1040,31 @@ public class TMFM extends JFrame {
                 			case "platform":
                 				platformthememi.setSelected(true);
                 				break;
-            				default:
+                			case "nimbus":
+                				nimbusthememi.setSelected(true);
+                				break;
+                			case "flatlightlaf":
+                				flatlightthememi.setSelected(true);
+                				break;
+                			case "flatdarklaf":
+                				flatdarkthememi.setSelected(true);
+                				break;
+                			case "flatintellijlaf":
+                				flatintellijthememi.setSelected(true);
+                				break;
+                			case "flatdarculalaf":
+                				flatDCMthememi.setSelected(true);
+                				break;
+                			case "business":
+                				business.setSelected(true);
+                				break;
+                			case "businessblue":
+                				businessblue.setSelected(true);
+                				break;
+                			case "sahara":
+                				sahara.setSelected(true);
+                				break;
+                			default:
             					bgr.clearSelection();
             					break;
                 		}
@@ -1076,7 +1106,7 @@ public class TMFM extends JFrame {
 								e1.printStackTrace(bs);
 								StaticStorageProperties.logger.error("Evaluation error");
 								System.err.println(baos.toString());
-								JOptionPane.showMessageDialog(dis, baos.toString(), "No, smth is wrong with your plguin code", JOptionPane.ERROR_MESSAGE);
+								JXErrorPane.showDialog(dis, new ErrorInfo("Beanshell Plugin Evaluation Error", "Your plugin is broken", "An exception occured while evaluating the plugin", "PluginError", e1, Level.SEVERE, new HashMap<String, String>()));
 							}
                 		});
                 		
@@ -1206,7 +1236,7 @@ public class TMFM extends JFrame {
 								} catch (IOException e1) {
 									// TODO Auto-generated catch block
 									e1.printStackTrace();
-									JOptionPane.showMessageDialog(dis, "Error with opening your file", "Open error", JOptionPane.ERROR_MESSAGE);
+									JXErrorPane.showDialog(dis, new ErrorInfo("File reading error", "An error occured whlie reading the file", "IOException at reading a file due to problems \nlike you don't have permission or the file no longer exists.", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
 								}
 							}
 						}
@@ -1229,7 +1259,7 @@ public class TMFM extends JFrame {
 									} catch (IOException e1) {
 										// TODO Auto-generated catch block
 										e1.printStackTrace();
-										JOptionPane.showMessageDialog(dis, "Error with opening your file", "Open error", JOptionPane.ERROR_MESSAGE);
+										JXErrorPane.showDialog(dis, new ErrorInfo("File reading error", "An error occured whlie reading the file", "IOException at reading a file due to problems \nlike you don't have permission or the file no longer exists.", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
 									}
 								}
 							}
@@ -1259,6 +1289,7 @@ public class TMFM extends JFrame {
                 	
                 	JMenuItem aboutmi = new JMenuItem("About");
                 	JMenuItem licensemi = new JMenuItem("License");
+                	JMenuItem tipmemi = new JMenuItem("Tip me");
                 	
                 	aboutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
                 	licensemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
@@ -1270,15 +1301,31 @@ public class TMFM extends JFrame {
                 		showAbout();
                 	});
                 	
+                	tipmemi.addActionListener((e) -> {
+                		Properties tips = new Properties();
+                		
+                		tips.put("tip.1.description", "This program is open source! \nYou can contribute to it as it is licensed under the MIT License.");
+                		tips.put("tip.2.description", "This program uses SwingX, JavaFX, Swing and AWT. \nIt has a web bowser too thanks to JavaFX.");
+                		tips.put("tip.3.description", "You cna change the theme at runtime.");
+                		tips.put("tip.4.description", "Some of the classes are reusable, you can use them in your own projects.");
+                		tips.put("tip.5.description", "Go play SEOS, it's good. Also there is the STDout version of this editor.");
+                		
+                		TipOfTheDayModel ttm = TipLoader.load(tips);
+                		JXTipOfTheDay totd = new JXTipOfTheDay(ttm);
+                		totd.showDialog(dis);
+                	});
+                	
                 	licensemi.addActionListener((e) -> {
                 		try {
 							JOptionPane.showMessageDialog(dis, FSUtils.getTextFromFile(ResourceGet.getFile(this.getClass(), "LICENSE")), "LICENSE", JOptionPane.INFORMATION_MESSAGE);
 						} catch (HeadlessException | FileNotFoundException e1) {
-							JOptionPane.showMessageDialog(this, e1, "Error opening LICENSE", JOptionPane.ERROR_MESSAGE);
+							e1.printStackTrace();
+							JXErrorPane.showDialog(dis, new ErrorInfo("LICENSE Missing", "An error occured while reading the LICENSE file", "An IOException was thrown while reading the LICENSE file \ndue to the user's computer being headless or the file does not exist", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
 						}
                 	});
                 	
                 	helpm.add(aboutmi);
+                	helpm.add(tipmemi);
                 	helpm.addSeparator();
                 	helpm.add(licensemi);
                 	
@@ -1569,15 +1616,51 @@ public class TMFM extends JFrame {
 			        			    		new File(name).getCanonicalFile();
 			        			    	}
 			        			    	catch(FileSystemException fsex) {
-			        			    		JOptionPane.showMessageDialog(dis, "The name you put in is not really valid.", "No", JOptionPane.ERROR_MESSAGE);
+			        			    		fsex.printStackTrace();
+											String stack = "";
+											try (StringWriter sw = new StringWriter()){
+												try(PrintWriter pw = new PrintWriter(sw)){
+													fsex.printStackTrace(pw);
+												}
+												
+												stack = sw.toString();
+											} catch (IOException e3) {
+												// TODO Auto-generated catch block
+												JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+											}
+			        			    		JXErrorPane.showDialog(dis, new ErrorInfo("Invalid name", "A problem occured while renaming your file", "A proglem occured while renaming your file due to invalid characters. \nI have a stack here. \n\n" + stack , "IO Error", fsex, Level.SEVERE, new HashMap<String, String>()));
 			        			    		return;
 			        			    	}
 			        			    	catch(IOException ioex) {
-			        			    		JOptionPane.showMessageDialog(dis, "The name you put in is causing problem.", "No", JOptionPane.ERROR_MESSAGE);
+			        			    		ioex.printStackTrace();
+											String stack = "";
+											try (StringWriter sw = new StringWriter()){
+												try(PrintWriter pw = new PrintWriter(sw)){
+													ioex.printStackTrace(pw);
+												}
+												
+												stack = sw.toString();
+											} catch (IOException e3) {
+												// TODO Auto-generated catch block
+												JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+											}
+			        			    		JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "An unknown IO Error occured", "An unknown IO Error occured while \nyou are trying to do your thing. \nBTW I have the stack. \n\n" + stack, "IO Error", ioex, Level.SEVERE, new HashMap<String, String>()));
 			        			    		return;
 			        			    	}
 			        			    	catch(InvalidPathException ipex) {
-			        			    		JOptionPane.showMessageDialog(dis, "The name you put in is empty lol, we are not making a file with that.", "No", JOptionPane.ERROR_MESSAGE);
+			        			    		ipex.printStackTrace();
+											String stack = "";
+											try (StringWriter sw = new StringWriter()){
+												try(PrintWriter pw = new PrintWriter(sw)){
+													ipex.printStackTrace(pw);
+												}
+												
+												stack = sw.toString();
+											} catch (IOException e3) {
+												// TODO Auto-generated catch block
+												JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace. \nI have the stack btw. \n\n" + stack, "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+											}
+			        			    		JXErrorPane.showDialog(dis, new ErrorInfo("Invalid path", "Your path is invalid", "It may be empty,", "IO Error", ipex, Level.SEVERE, new HashMap<String, String>()));
 			        			    		return;
 			        			    	}
 			        			    	
@@ -1682,7 +1765,20 @@ public class TMFM extends JFrame {
 									} catch (IOException e1) {
 										// TODO Auto-generated catch block
 										e1.printStackTrace();
-										JOptionPane.showMessageDialog(dis, "Um, No", "nO", JOptionPane.ERROR_MESSAGE);
+										String stack = "";
+										try (StringWriter sw = new StringWriter()){
+											try(PrintWriter pw = new PrintWriter(sw)){
+												e1.printStackTrace(pw);
+											}
+											
+											stack = sw.toString();
+										} catch (IOException e3) {
+											// TODO Auto-generated catch block
+											e3.printStackTrace();
+											JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+										}
+										
+										JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Um. No", "An unknown IO error occured, so, um, No!\nYou want the stacktrace, there it is.\n\n" + stack, "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
 									}
 			        			    
 			        			});
@@ -1713,7 +1809,18 @@ public class TMFM extends JFrame {
 				        					open_file_from_File(path);
 				        			}
 				        			catch(InterruptedException e2) {
-				        				JOptionPane.showMessageDialog(dis, "Error opening file", "File error lol", JOptionPane.ERROR_MESSAGE);
+										String stack = "";
+										try (StringWriter sw = new StringWriter()){
+											try(PrintWriter pw = new PrintWriter(sw)){
+												e2.printStackTrace(pw);
+											}
+											
+											stack = sw.toString();
+										} catch (IOException e3) {
+											// TODO Auto-generated catch block
+											JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+										}
+				        				JXErrorPane.showDialog(dis, new ErrorInfo("Interrupted IO", "A problem occured while opening file\nStack is available\n\n" + stack, "The opening of the file was interrupted", "IO Error", e2, Level.SEVERE, new HashMap<String, String>()));
 				        			}
 				        		}
 				            }
@@ -1727,12 +1834,25 @@ public class TMFM extends JFrame {
 			{
 				JPanel ftreepanel = new JPanel(new BorderLayout());
 				JButton refreshftree = new JButton("Refresh");
+				JButton searchftree = new JButton("Search");
 				
 				refreshftree.addActionListener((e) -> {
 					fmodel.setRoot(FileTree.scan(StaticStorageProperties.cwdPath.toFile()));
 				});
 				
-				ftreepanel.add(refreshftree, BorderLayout.NORTH);
+				searchftree.addActionListener((e) -> {
+					SearchTreeDialog st = new SearchTreeDialog(dis, ftree);
+					st.setResizable(false);
+					st.setVisible(true);
+				});
+				
+				{
+					JPanel xtrap = new JPanel();
+					xtrap.add(refreshftree, BorderLayout.NORTH);
+					xtrap.add(searchftree);
+					ftreepanel.add(xtrap, BorderLayout.NORTH);
+				}
+				
 				ftreepanel.add(new JScrollPane(ftree));
 				
 				documentPane.add(ftreepanel, "Filesystem Manager");
@@ -1743,7 +1863,20 @@ public class TMFM extends JFrame {
 				ftreeworker.execute();
 			}
 			catch(IOException ioe) {
-				JOptionPane.showMessageDialog(dis, "Failed to create filesystem tree worker\n You need to refresh the filesystem tree manually. \nBtw, ftreeworker is the name of the variable used to handle ftreeworker.", "FTreeworker Error", JOptionPane.ERROR_MESSAGE);
+				// JOptionPane.showMessageDialog(dis, "Failed to create filesystem tree worker\n You need to refresh the filesystem tree manually. \nBtw, ftreeworker is the name of the variable used to handle ftreeworker.", "FTreeworker Error", JOptionPane.ERROR_MESSAGE);
+				String stack = "";
+				try (StringWriter sw = new StringWriter()){
+					try(PrintWriter pw = new PrintWriter(sw)){
+						ioe.printStackTrace(pw);
+					}
+					
+					stack = sw.toString();
+				} catch (IOException e3) {
+					// TODO Auto-generated catch block
+					e3.printStackTrace();
+					JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+				}
+				JXErrorPane.showDialog(dis, new ErrorInfo("Tree Worker Failure", "Failed to create worker", "You need to refresh the tree manually.\nStack is available.\n\n" + stack, "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
 			}
 			
 			filechangedworker = new SwingWorker<Void, Object>(){
@@ -2696,20 +2829,54 @@ public class TMFM extends JFrame {
 						StaticStorageProperties.logger.error("Wow, your beanshell script ran out of memory you can of tuna.");
 						oome.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your beanshell script ran out of memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your beanshell/bsh script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								oome.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							e3.printStackTrace();
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Out of memory", "You can of tuna, your beanshell script ran out of memory", "You managed to run out of memory, change your script. \nMaybe the problem is with the script.\nBtw I have the stack.\n\n" + stack, "Out of memory", oome, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(EvalError ee) {
 						StaticStorageProperties.logger.error("Bsh has errored out");
 						ee.printStackTrace();
 						// JOptionPane.showMessageDialog(dis, "Your script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Calm down on your keymashed Beanshell macros, it has erorrs.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your beanshell script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								ee.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled evaluation errors!", "There is a problem during evaluation, a stack is provided. \n" + stack, "BadSyntax", ee, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(Throwable t) {
 						StaticStorageProperties.logger.error("Runtime error on beanshell");
 						t.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your BSH script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your beanshell script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								t.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled runtime errors!", "There is a problem, a stack is provided. \n" + stack, "ThrowableRuntime", t, Level.SEVERE, new HashMap<String, String>()));
 					}
 					
 					if(!mjfx.getText().equals(oldtext))
@@ -2795,14 +2962,36 @@ Editor.setText(a);
 					catch(EcmaError ece) {
 						StaticStorageProperties.logger.error("Javascript has errored out lol");
 						ece.printStackTrace();
-						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your javascript macro has errors in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your rhino javascript script (yes ik) is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your javascript macro has errors in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);		
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								ece.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has bad syntax!", "There is a problem with your syntax, a stack is provided. \n" + stack, "BadSyntax", ece, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(Throwable t) {
 						StaticStorageProperties.logger.error("Runtime error on JavaScript");
 						t.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JS script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your JavaScript script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								t.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled runtime errors!", "There is a problem, a stack is provided. \n" + stack, "ThrowableRuntime", t, Level.SEVERE, new HashMap<String, String>()));
 					}
 					
 					StaticStorageProperties.logger.info("Done running rhino js macros");
@@ -2881,19 +3070,53 @@ Editor.setText(a);
 						StaticStorageProperties.logger.error("Wow, your groovy script ran out of memory you can of tuna.");
 						oome.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your groovy ran out of memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your groovy script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								oome.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							e3.printStackTrace();
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Out of memory", "You can of tuna, your groovy script ran out of memory", "You managed to run out of memory, change your script. \nMaybe the problem is with the script.\nBtw I have the stack.\n\n" + stack, "Out of memory", oome, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(GroovyRuntimeException e) {
 						StaticStorageProperties.logger.error("Groovy has errored out");
 						e.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your groovy script has errors in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your groovy script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								e.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled runtime errors!", "There is a problem, a stack is provided. \n" + stack, "ThrowableRuntime", e, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(Throwable t) {
 						StaticStorageProperties.logger.error("Runtime error on groovy");
 						t.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your Groovy script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your groovy script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								t.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled runtime errors!", "There is a problem, a stack is provided. \n" + stack, "ThrowableRuntime", t, Level.SEVERE, new HashMap<String, String>()));
 					}
 					
 					StaticStorageProperties.logger.info("Finished running Apache Groovy Macros");
@@ -2964,19 +3187,52 @@ Editor.setText(a);
 						StaticStorageProperties.logger.error("Wow, your ruby script ran out of memory you can of tuna.");
 						oome.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your ruby script ran out mf memory you can of tuna", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your ruby script ran out of memory.", "No, you tuna can!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								oome.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Out of memory", "You can of tuna, your ruby script ran out of memory", "You managed to run out of memory, change your script. \nMaybe the problem is with the script. \nYou need help? I have stack! \n\n" + stack, "Out of memory", oome, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(EvalFailedException e) {
 						StaticStorageProperties.logger.error("Ruby has errored out");
 						e.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JRuby script has error in it.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your ruby script is a problematic here.", "No, your script has errored out!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								e.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled evaluation errors!", "There is a problem with your script, a stack is provided. \n" + stack, "BadSyntax", e, Level.SEVERE, new HashMap<String, String>()));
 					}
 					catch(Throwable t) {
 						StaticStorageProperties.logger.error("Runtime error on ruby");
 						t.printStackTrace();
 						if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Your JRuby script has experienced unhandled runtime error.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
-						JOptionPane.showMessageDialog(dis, "Your ruby script has experienced a runtime error.", "No, your script has unhandled runtime errors!", JOptionPane.ERROR_MESSAGE);
+						String stack = "";
+						try (StringWriter sw = new StringWriter()){
+							try(PrintWriter pw = new PrintWriter(sw)){
+								t.printStackTrace(pw);
+							}
+							
+							stack = sw.toString();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							JXErrorPane.showDialog(dis, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e3, Level.SEVERE, new HashMap<String, String>()));
+						}
+						JXErrorPane.showDialog(dis, new ErrorInfo("Runtime error", "No, your script has unhandled runtime errors!", "There is a problem, a stack is provided. \n" + stack, "ThrowableRuntime", t, Level.SEVERE, new HashMap<String, String>()));
 					}
 					
 					StaticStorageProperties.logger.info("Finished running JRuby Macros");

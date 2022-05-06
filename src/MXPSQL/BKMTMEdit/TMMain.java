@@ -218,7 +218,7 @@ public class TMMain {
 			parser.addArgument("-p", "--homepage").metavar("YOUR CUSTOM HOMEPAGE").dest("homepage").help("Your homepage!").type(String.class).required(false);
 			parser.addArgument("-d", "--pwd").metavar("YOUR DIRECTORY HERE").dest("cwd").help("Current directory").type(String.class).required(false);
 			parser.addArgument("-se", "--stdout-editor").dest("se").help("Stdout editor mode, useful to ask for input. \nYou should read the docs for more info.").required(false).action(Arguments.storeTrue());
-			parser.addArgument("-cw", "--config-wizard").dest("config-wizard").help("A wizard to create config (Not Implemented)").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-cw", "--config-wizard").dest("config-wizard").help("A wizard to create config").required(false).action(Arguments.storeTrue());
 			parser.addArgument("-?", "-help", "-Help").dest("helpme").help("Does the same job as -h").required(false).action(Arguments.storeTrue());
 		}
 		
@@ -252,6 +252,51 @@ public class TMMain {
 		
 		StaticStorageProperties.logoff = StaticStorageProperties.ns.get("turnofflog");
 		StaticStorageProperties.SEMode = StaticStorageProperties.ns.getBoolean("se");
+		
+		if(StaticStorageProperties.ns.getBoolean("config-wizard")) {
+			File fcwd = StaticStorageProperties.CWDConfig();
+			try {
+				fcwd = fcwd.getCanonicalFile();
+				boolean makecwdcfg = false;
+				
+				if(!fcwd.exists() && !fcwd.isDirectory()) {
+					int rc = JOptionPane.showConfirmDialog(null, "Do you want to make a config in the current directory?", "Make Config", JOptionPane.YES_NO_OPTION);
+					
+					if(rc == JOptionPane.YES_OPTION) {
+						makecwdcfg = true;
+					}
+					else {
+						makecwdcfg = false;
+					}
+				}
+				
+				if(makecwdcfg) {
+					if(!fcwd.createNewFile()) {
+						JOptionPane.showMessageDialog(null, "There is a problem creating the config file", "No", JOptionPane.ERROR_MESSAGE);
+					}
+					else {
+						makeConfig(fcwd);
+					}
+				}
+				
+				JFileChooser jfc = new JFileChooser();
+				jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				
+				int rt = jfc.showOpenDialog(null);
+				
+				if(rt == JFileChooser.APPROVE_OPTION) {
+					File dpath = jfc.getSelectedFile();
+					File fc = dpath.toPath().resolve(StaticStorageProperties.ConfigFileName).toFile();
+					
+					makeConfig(fc);
+				}
+			}
+			catch(IOException ioe) {
+				;
+			}
+			
+			System.exit(StaticStorageProperties.goodExit);
+		}
 		
 		if(!StaticStorageProperties.ns.getList("dndf").isEmpty()) {
 			ArrayList<Object> fsl = (ArrayList<Object>) StaticStorageProperties.ns.getList("dndf");
