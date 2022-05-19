@@ -40,6 +40,7 @@ public class WebkitWebBrowser extends VBox {
 	@SuppressWarnings("unused")
 	private static final long serialVersionUID = 1L;
 	public WebView webb;
+	public VBox boxd;
 	WebEngine webe;
 	TextField field;
 	String homeURL;
@@ -55,7 +56,7 @@ public class WebkitWebBrowser extends VBox {
 		
 		pbar = new ProgressBar();
 		
-		VBox boxd = new VBox();
+		boxd = new VBox();
 		{
 			HBox box = new HBox();
 			

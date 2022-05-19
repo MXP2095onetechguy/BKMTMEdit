@@ -63,12 +63,19 @@ public class TexyHolder {
 			"No lol, Aw man, no fish wanted your rod",
 			"No lol, awk",
 			"No lol, pig sus ngl",
+			
 			"No lol, MAMAZon is here",
 			"No lol, ioeqpwurpoqwefjdanfvcx",
 			"No lol, one of the message is a keymash",
+			
 			"No lol, eclipse is cool, used to write me :)",
+			
 			"No lol, pigs are sus, pig not impostor",
-			"No lol, impasta from italy"
+			"No lol, impasta from italy",
+			
+			"No lol, yes",
+			"No lol, Yes",
+			"No lol, it's a Yes"
 	};
 	
 	public final static String Texy = "Texy";

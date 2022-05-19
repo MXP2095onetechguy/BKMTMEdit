@@ -1,0 +1,42 @@
+/* .button {
+    -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 5, 5, 4, 3;
+    -fx-padding: 0.166667em 0.833333em 0.25em 0.833333em; /* 2 10 3 10 */
+    -fx-text-fill: -fx-text-base-color;
+    -fx-alignment: CENTER;
+    -fx-content-display: LEFT;
+}
+
+.button:focused {
+    -fx-color: -fx-focused-base;
+    -fx-background-color: -fx-focus-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: -1.4, 0, 1, 2;
+    -fx-background-radius:  6.4, 5, 4, 3;
+}
+
+.button:hover {
+    -fx-color: -fx-hover-base;
+}
+
+.button:armed {
+    -fx-color: -fx-pressed-base;
+}
+ 
+.button:default {
+    -fx-base: -fx-accent;
+}
+
+.button:cancel {
+}
+
+.button:disabled {
+    -fx-opacity: -fx-disabled-opacity;
+}
+
+.button:show-mnemonics > .mnemonic-underline {
+    -fx-stroke: -fx-text-fill;
+} */
+
+
+

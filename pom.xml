@@ -16,7 +16,7 @@
   	
   	<pf4j.version>3.6.0</pf4j.version>
   	
-  	<swt.version>3.118.0</swt.version>
+  	<swt.version>3.119.0</swt.version>
   	
   	<radiance.version>5.0.0</radiance.version>
   </properties>
@@ -153,6 +153,7 @@
     	<artifactId>commons-io</artifactId>
     	<version>2.11.0</version>
 	</dependency>
+	
 	
 	<dependency>
   		<groupId>net.lingala.zip4j</groupId>

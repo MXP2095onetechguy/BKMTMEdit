@@ -13,6 +13,7 @@ import MXPSQL.BKMTMEdit.reusable.utils.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 import org.fife.rsta.ui.CollapsibleSectionPanel;
 import org.pushingpixels.radiance.theming.api.skin.*;
+import MXPSQL.BKMTMEdit.reusable.widgets.findr.FindAccessory;
 import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
 
 /**
@@ -69,6 +70,7 @@ public class TMSEFM extends JFrame {
 				
 				try {
 					JFileChooser jfc = new JFileChooser();
+					jfc.setAccessory(new FindAccessory(jfc));
 					jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					
 					for(int i = 0; i < StaticStorageProperties.filt.length; i++) {
@@ -311,6 +313,7 @@ public class TMSEFM extends JFrame {
         		// appearancem.setEnabled(false);
         		
         		StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+        		bgr.clearSelection();
         		switch(StaticStorageProperties.theme) {
         			case "metal":
         				metalthememi.setSelected(true);

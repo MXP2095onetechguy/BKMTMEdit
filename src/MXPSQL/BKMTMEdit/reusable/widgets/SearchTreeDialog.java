@@ -4,8 +4,9 @@ import java.awt.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.tree.*;
-import java.util.Enumeration;
 import org.jdesktop.swingx.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class SearchTreeDialog extends JDialog {
 
@@ -15,18 +16,34 @@ public class SearchTreeDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
 	
 	protected JTree tree;
-	protected FindBar fbar = new FindBar();
+	protected FindBar fbar = new FindBar(false);
 	protected JDialog dis = this;
 	
-	public static TreeNode find(DefaultMutableTreeNode root, String s) {
+	protected String cachedName = "";
+	protected java.util.List<TreeNode> nodesHit = null;
+	
+	protected int index = 0;
+	
+	public static java.util.List<TreeNode> findNodes(DefaultMutableTreeNode root, String query) {
+		java.util.List<TreeNode> nodes = new LinkedList<TreeNode>();
 	    Enumeration<TreeNode> e = root.depthFirstEnumeration();
 	    while (e.hasMoreElements()) {
 	        DefaultMutableTreeNode node = (DefaultMutableTreeNode) e.nextElement();
-	        if (node.toString().equalsIgnoreCase(s)) {
-	            return node;
+	        if (node.toString().equalsIgnoreCase(query)) {
+	        	nodes.add(node);
 	        }
 	    }
-	    return null;
+	    return nodes;
+	}
+	
+	public static TreeNode find(DefaultMutableTreeNode root, String s) {
+		java.util.List<TreeNode> nodes = findNodes(root, s);
+		if(nodes.size() > 0) {
+			return nodes.get(0);
+		}
+		else {
+			return null;
+		}
 	}
 	
 	public static TreePath getPath(TreeNode treeNode) {
@@ -41,6 +58,56 @@ public class SearchTreeDialog extends JDialog {
 		}
 		
 		return nodes.isEmpty() ? null : new TreePath(nodes.toArray());
+	}
+	
+	protected void setSelectedNode(int nindex) {
+		DefaultMutableTreeNode nodei = (DefaultMutableTreeNode) nodesHit.get(nindex);
+		TreePath tpath = new TreePath(nodei.getPath());
+		tree.setSelectionPath(tpath);
+		if(!nodei.isLeaf())tree.expandPath(tpath);
+		tree.scrollPathToVisible(tpath);
+	}
+	
+	protected void loadCache() {
+		String query = fbar.field.getText();
+		cachedName = query;
+		
+		nodesHit = findNodes((DefaultMutableTreeNode)tree.getModel().getRoot(), query);
+		index = 0;
+	}
+	
+	protected void browseNode(boolean backwards) {
+		if(nodesHit == null) {
+			JOptionPane.showMessageDialog(tree, "Cache not loaded yet. \nTo create/update the cache, use the load cache button", "Cache not loaded yet", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		
+		if(nodesHit.size() < 1) {
+			JOptionPane.showMessageDialog(tree, "Node '" + cachedName + "' not found. \nTo update the cache, use the load cache button.", "No nodes found.", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		
+		if(!backwards) {
+			if(index >= nodesHit.size()) {
+				index = 0;
+			}
+		}
+		else {
+			if(index <= 0) {
+				index = nodesHit.size() - 1;
+			}
+		}
+		
+		
+		setSelectedNode(index);
+		if(!backwards) {
+			index += 1;
+		}
+		else {
+			index -= 1;
+		}
+		
+		System.out.println(index);
 	}
 	
 	private void initUI() {
@@ -58,50 +125,33 @@ public class SearchTreeDialog extends JDialog {
 		panel.add(fbar, BorderLayout.CENTER);
 		
 		{
-			fbar.next.addActionListener((e) -> {
-				String query = fbar.field.getText();
-				
-				TreePath[] tpath = tree.getSelectionPaths();
-				
-				if(tpath != null) {
-					if(tpath.length > 0) {
-						TreePath stpath = tpath[0];
-						TreeNode node = (TreeNode) stpath.getLastPathComponent();
-						if(node instanceof DefaultMutableTreeNode) {
-							DefaultMutableTreeNode dmnode = (DefaultMutableTreeNode) node;
-							
-							TreeNode rnode = find(dmnode, query);
-							
-							if(rnode == null) {
-								JOptionPane.showMessageDialog(dis, query + " not found.", "Not Found", JOptionPane.INFORMATION_MESSAGE);
-							}
-							else {
-								TreePath p = getPath(rnode);
-								if(p != null) {
-									tree.setSelectionPath(p);
-									tree.scrollPathToVisible(p);
-								}
-							}
-						}
-					}
+			
+			fbar.load.addActionListener((e) -> loadCache());
+			fbar.field.addActionListener((e) -> loadCache());
+			fbar.field.getDocument().addDocumentListener(new DocumentListener() {
+
+				@Override
+				public void insertUpdate(DocumentEvent e) {
+					// TODO Auto-generated method stub
+					loadCache();
 				}
-				else {
-					if(tree.getModel().getRoot() == null) return;
-					
-					TreeNode rnode = find((DefaultMutableTreeNode) tree.getModel().getRoot(), query);
-					
-					if(rnode == null) {
-						JOptionPane.showMessageDialog(dis, query + " not found.", "Not Found", JOptionPane.INFORMATION_MESSAGE);
-					}
-					else {
-						TreePath p = getPath(rnode);
-						if(p != null) {
-							tree.setSelectionPath(p);
-							tree.scrollPathToVisible(p);
-						}
-					}
+
+				@Override
+				public void removeUpdate(DocumentEvent e) {
+					// TODO Auto-generated method stub
+					loadCache();
 				}
+
+				@Override
+				public void changedUpdate(DocumentEvent e) {
+					// TODO Auto-generated method stub
+					loadCache();
+				}
+				
 			});
+			
+			fbar.next.addActionListener((e) -> browseNode(false));
+			fbar.prev.addActionListener((e) -> browseNode(true));
 		}
 		
 		{
@@ -157,22 +207,23 @@ public class SearchTreeDialog extends JDialog {
 		 */
 		private static final long serialVersionUID = 1L;
 		
+		public JButton load = new JButton("Load Tree Cache");
 		public JButton next = new JButton("Find next");
 		public JButton prev = new JButton("Find previous");
 		public JTextField field = new JTextField();
 		
-		public FindBar() {
+		public FindBar(boolean addload) {
 			setLayout(new BorderLayout());
 			
 			add(new JScrollPane(field), BorderLayout.CENTER);
 			
 			{
 				JPanel p = new JPanel(new BorderLayout());
-				
+				if(addload) p.add(load, BorderLayout.EAST);
 				p.add(next, BorderLayout.CENTER);
 				p.add(prev, BorderLayout.WEST);
 				
-				add(p, BorderLayout.EAST);
+				add(p, BorderLayout.SOUTH);
 			}
 		}
 	};

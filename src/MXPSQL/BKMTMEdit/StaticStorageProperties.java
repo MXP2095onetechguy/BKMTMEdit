@@ -41,7 +41,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public class StaticStorageProperties {
 	// runtime
-	public static final Version version = Version.valueOf("1.2.0");
+	public static final Version version = Version.valueOf("1.3.0");
 	public static final int abortExit = 1;
 	public static final int goodExit = 0;
 	public static final int parserExit = -1;

@@ -51,6 +51,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.apache.commons.configuration2.builder.fluent.*;
+import MXPSQL.BKMTMEdit.reusable.widgets.findr.FindAccessory;
 import org.pushingpixels.radiance.theming.api.skin.SaharaSkin;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import org.apache.commons.configuration2.ex.ConversionException;
@@ -152,7 +153,8 @@ public class TMMain {
 		
 		ps.println("# " + StaticStorageProperties.baseTitle + ", this is the config file.");
         ps.println("# LOLOLOLOL");
-        ps.println("# I recommend do not mess with this: bkmtmedit.version");
+        ps.println("# I recommend do not mess with anything under bkmtmedit, but there are exceptions");
+        ps.println("# This bkmtmedit.version is under bkmtmedit, do not mess with it unless to update the config");
 		ps.println("bkmtmedit.version=" + String.valueOf(StaticStorageProperties.version));
 		ps.println("# editor related");
 		ps.println("# Here are the themes");
@@ -213,17 +215,16 @@ public class TMMain {
 		{
 			parser.addArgument("-v", "--version").action(Arguments.version()).help("It's obvious what does it mean on the flag. If you still don't get it, it is used to get the version");
 			parser.addArgument("dndf").dest("dndf").help("Drag and drop into this thing if it is possible").type(String.class).nargs("*");
-			parser.addArgument("-l", "--logoff").dest("turnofflog").help("turn off those pesky but useful log messages").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-l", "--logoff", "--nolog").dest("turnofflog").help("turn off those pesky but useful log messages").required(false).action(Arguments.storeTrue());
 			parser.addArgument("-c", "--config").metavar("YOUR OTHER CONFIG").dest("configPath").help("Path to config").type(String.class).required(false);
 			parser.addArgument("-p", "--homepage").metavar("YOUR CUSTOM HOMEPAGE").dest("homepage").help("Your homepage!").type(String.class).required(false);
 			parser.addArgument("-d", "--pwd").metavar("YOUR DIRECTORY HERE").dest("cwd").help("Current directory").type(String.class).required(false);
 			parser.addArgument("-se", "--stdout-editor").dest("se").help("Stdout editor mode, useful to ask for input. \nYou should read the docs for more info.").required(false).action(Arguments.storeTrue());
-			parser.addArgument("-cw", "--config-wizard").dest("config-wizard").help("A wizard to create config").required(false).action(Arguments.storeTrue());
-			parser.addArgument("-?", "-help", "-Help").dest("helpme").help("Does the same job as -h").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-cw", "-wizard", "--config-wizard").dest("config-wizard").help("A wizard to create config").required(false).action(Arguments.storeTrue());
+			parser.addArgument("-?", "-help", "-Help").dest("helpme").help("Does the same job as -h").required(false).action(Arguments.help());
 		}
 		
 		// System.out.println(parser.formatHelp());
-		// StaticStorageProperties.logger.info("Starting up editor.");
 		
 		if(SystemUtils.IS_OS_AIX || SystemUtils.IS_OS_SOLARIS) {
 			StaticStorageProperties.logger.error("AIX and SOLARIS ain't supported.");
@@ -245,13 +246,10 @@ public class TMMain {
 			System.exit(StaticStorageProperties.parserExit);
 		}
 		
-		if(StaticStorageProperties.ns.getBoolean("helpme")) {
-			System.out.println(parser.formatHelp());
-			System.exit(StaticStorageProperties.parserExit);
-		}
-		
 		StaticStorageProperties.logoff = StaticStorageProperties.ns.get("turnofflog");
 		StaticStorageProperties.SEMode = StaticStorageProperties.ns.getBoolean("se");
+		
+		if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Starting up editor.");
 		
 		if(StaticStorageProperties.ns.getBoolean("config-wizard")) {
 			File fcwd = StaticStorageProperties.CWDConfig();
@@ -280,6 +278,7 @@ public class TMMain {
 				}
 				
 				JFileChooser jfc = new JFileChooser();
+				jfc.setAccessory(new FindAccessory(jfc));
 				jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				
 				int rt = jfc.showOpenDialog(null);
@@ -686,8 +685,11 @@ public class TMMain {
 			StaticStorageProperties.syntaxset.put("perl", new ImmutablePair<String[], String>(new String[] {"plx", "pl", "pm", "xs", "t", "pod", "cgi"}, SyntaxConstants.SYNTAX_STYLE_PERL));
 		}
 		
-		if(!StaticStorageProperties.logoff)
+		if(!StaticStorageProperties.logoff) {
 			StaticStorageProperties.logger.debug("Starting Up");
+			System.setProperty("org.eclipse.jetty.LEVEL", "OFF");
+			System.setProperty("org.eclipse.jetty.LEVEL", "OFF");
+		}
 		
 		try {
 			SwingUtilities.invokeAndWait(() -> {
@@ -859,7 +861,7 @@ public class TMMain {
 								StaticStorageProperties.logger.info("Found port at " + StaticStorageProperties.vport);
 
 							if(!StaticStorageProperties.logoff)
-								StaticStorageProperties.logger.info("Grrol the browser at http://localhost:" + StaticStorageProperties.vport);
+								StaticStorageProperties.logger.info("Grrol the browser at http://localhost:" + StaticStorageProperties.vport + ". Wait, no, do not grroll there");
 						}
 						catch(IOException ioe) {
 							if(!StaticStorageProperties.logoff)
@@ -874,13 +876,14 @@ public class TMMain {
 						resourceHandler.setResourceBase(".");
 						StaticStorageProperties.server.setHandler(resourceHandler);
 						try {
-							StaticStorageProperties.server.start();
+							// we don't ned webserver attacking us
+							// StaticStorageProperties.server.start();
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
 							if(!StaticStorageProperties.logoff)
 								StaticStorageProperties.logger.error("Failure at running webserver");
 								e.printStackTrace();
-							System.exit(StaticStorageProperties.badExit);
+							// System.exit(StaticStorageProperties.badExit);
 						}
 					}
 					

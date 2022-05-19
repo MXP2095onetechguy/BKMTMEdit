@@ -57,8 +57,11 @@ import MXPSQL.BKMTMEdit.reusable.utils.*;
 import groovy.lang.GroovyRuntimeException;
 import MXPSQL.BKMTMEdit.reusable.widgets.*;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+
 import java.util.concurrent.CountDownLatch;
 import javax.swing.UIManager.LookAndFeelInfo;
+import MXPSQL.BKMTMEdit.reusable.widgets.findr.*;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.pushingpixels.radiance.theming.api.skin.*;
@@ -73,6 +76,8 @@ public class TMFM extends JFrame {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	protected Robot bot = null;
 	
 	public JTabbedPane rb = new JTabbedPane();
 	public final int rb_main_i = 0;
@@ -137,8 +142,76 @@ public class TMFM extends JFrame {
     SwingWorker<Void, Void> groovyshellmacroworker;
     SwingWorker<Void, Void> rbmacroworker;
     
+    File defloc;
+    
     protected void dispatchExitEvent() {
     	dispatchEvent(new WindowEvent(dis, WindowEvent.WINDOW_CLOSING));
+    }
+    
+    protected void showLicenseDialog() {
+		try {
+			String license = "";
+			try(InputStream is = ResourceGet.getStream(this.getClass(), "LICENSE")){
+				license = IOUtils.toString(is, "UTF-8");
+    			JTextArea jtex = new JTextArea();
+    			jtex.setText(license);
+    			jtex.setEditable(false);
+    			Dialog d = new Dialog(dis, "License information");
+    			d.setLayout(new BorderLayout());
+    			d.add(new JScrollPane(jtex));
+    			d.addWindowListener(new WindowListener() {
+
+					@Override
+					public void windowOpened(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void windowClosing(WindowEvent e) {
+						// TODO Auto-generated method stub
+						d.dispose();
+					}
+
+					@Override
+					public void windowClosed(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void windowIconified(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void windowDeiconified(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void windowActivated(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void windowDeactivated(WindowEvent e) {
+						// TODO Auto-generated method stub
+						
+					}
+    				
+    			});
+    			d.setMinimumSize(new Dimension(400, 300));
+    			d.setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
+    			d.setVisible(true);
+			}
+		} catch (HeadlessException | IOException | IllegalArgumentException e1) {
+			e1.printStackTrace();
+			JXErrorPane.showDialog(dis, new ErrorInfo("LICENSE Missing", "An error occured while reading the LICENSE file", "An IOException was thrown while reading the LICENSE file \ndue to the user's computer being headless or the file does not exist", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
+		}
     }
 	
 	
@@ -198,7 +271,7 @@ public class TMFM extends JFrame {
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						// TODO Auto-generated method stub
-						open_file();
+						open_file(false);
 					}
 					
 				});
@@ -518,6 +591,9 @@ public class TMFM extends JFrame {
 						openfmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
 						openfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
 						
+						JMenuItem openfdmi = new JMenuItem("Open file from last opened directory");
+						openfdmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.ALT_MASK));
+						openfdmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
 						
 						JMenuItem openwmi = new JMenuItem("Open from internet");
 						openwmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
@@ -531,7 +607,17 @@ public class TMFM extends JFrame {
 							@Override
 							public void actionPerformed(ActionEvent e) {
 								// TODO Auto-generated method stub
-								open_file();
+								open_file(false);
+							}
+							
+						});
+						
+						openfdmi.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent e) {
+								// TODO Auto-generated method stub
+								open_file(true);
 							}
 							
 						});
@@ -557,6 +643,7 @@ public class TMFM extends JFrame {
 						});
 						
 						filem.add(openfmi);
+						filem.add(openfdmi);
 						filem.add(viewfmi);
 						filem.add(openwmi);
 					}
@@ -890,7 +977,7 @@ public class TMFM extends JFrame {
                 	{
                 		JMenu appearancem = new JMenu("Appearance");
                 		
-                		appearancem.setToolTipText("Only few selected themes are available here");
+                		appearancem.setToolTipText("Only few )selected themes are available here");
                 		
                 		ButtonGroup bgr = new ButtonGroup();
                 		// ButtonGroup pointer = new ButtonGroup();
@@ -1033,6 +1120,7 @@ public class TMFM extends JFrame {
                 		// appearancem.setEnabled(false);
                 		
                 		StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+                		bgr.clearSelection();
                 		switch(StaticStorageProperties.theme) {
                 			case "metal":
                 				metalthememi.setSelected(true);
@@ -1250,6 +1338,7 @@ public class TMFM extends JFrame {
 							// TODO Auto-generated method stub
 							JFileChooser jfc = new JFileChooser();
 							
+							jfc.setAccessory(new FindAccessory(jfc));
 							jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 							
 							if(jfc.showOpenDialog(dis) == JFileChooser.APPROVE_OPTION) {
@@ -1315,14 +1404,7 @@ public class TMFM extends JFrame {
                 		totd.showDialog(dis);
                 	});
                 	
-                	licensemi.addActionListener((e) -> {
-                		try {
-							JOptionPane.showMessageDialog(dis, FSUtils.getTextFromFile(ResourceGet.getFile(this.getClass(), "LICENSE")), "LICENSE", JOptionPane.INFORMATION_MESSAGE);
-						} catch (HeadlessException | FileNotFoundException e1) {
-							e1.printStackTrace();
-							JXErrorPane.showDialog(dis, new ErrorInfo("LICENSE Missing", "An error occured while reading the LICENSE file", "An IOException was thrown while reading the LICENSE file \ndue to the user's computer being headless or the file does not exist", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
-						}
-                	});
+                	licensemi.addActionListener((e) -> showLicenseDialog());
                 	
                 	helpm.add(aboutmi);
                 	helpm.add(tipmemi);
@@ -1357,24 +1439,33 @@ public class TMFM extends JFrame {
 			statusPanel.add(javafxPanel, gbc);
 			new DropTarget(javafxPanel, new FileDND());
 			
-			JToolBar statusBar = new JToolBar();
+			JXStatusBar statusBar = new JXStatusBar();
 			statusBar.setBorder((Border) new BevelBorder(BevelBorder.LOWERED));
-			statusBar.setFloatable(false);
 			
 	        JLabel readylabel=new JLabel(StaticStorageProperties.baseTitle);
 	        readylabel.setFont(new Font("Calibri",Font.PLAIN,15));
+	        readylabel.setForeground(Color.BLACK);
 	        new DropTarget(readylabel, new FileDND());
 	        filenameLabel = new JLabel("");
 	        filenameLabel.setFont(new Font("Calibri",Font.PLAIN,15));
+	        filenameLabel.setForeground(Color.BLACK);
 	        caretLabel = new JLabel("");
 	        caretLabel.setFont(new Font("Calibri",Font.PLAIN,15));
+	        caretLabel.setForeground(Color.BLACK);
 	        new DropTarget(filenameLabel, new FileDND());
-	        statusBar.add(readylabel);
-	        // statusBar.add(new JLabel("                          "));
-	        statusBar.addSeparator();
-	        statusBar.add(filenameLabel);
-	        statusBar.addSeparator();
-	        statusBar.add(caretLabel);
+	        {
+	        	JXStatusBar.Constraint c = new JXStatusBar.Constraint(JXStatusBar.Constraint.ResizeBehavior.FILL);
+	        	// c.setFixedWidth(343); // Go here if you change the name
+	        	statusBar.add(readylabel, c);
+	        }
+	        {
+	        	JXStatusBar.Constraint c = new JXStatusBar.Constraint(JXStatusBar.Constraint.ResizeBehavior.FILL);
+	        	statusBar.add(filenameLabel, c);
+	        }
+	        {
+	        	JXStatusBar.Constraint c = new JXStatusBar.Constraint(JXStatusBar.Constraint.ResizeBehavior.FILL);
+	        	statusBar.add(caretLabel, c);
+	        }
 	        new DropTarget(statusBar, new FileDND());
 	        
 	        gbc.gridy = 1;
@@ -1382,6 +1473,19 @@ public class TMFM extends JFrame {
 			new DropTarget(statusPanel, new FileDND());
 			
 			contentPane.add(statusPanel, BorderLayout.SOUTH);
+			
+			{
+				try{
+					final String pbarpath = "jfxth/progress.css";
+					// System.out.println(ResourceGet.getString(getClass(), pbarpath));
+					// System.out.println(new File(ResourceGet.getString(getClass(), pbarpath)).exists());
+					// System.out.println(new File(new URL(ResourceGet.getURL(getClass(), pbarpath).toURI().toString()).toExternalForm().toString()));
+					// scene.getStylesheets().add(ResourceGet.getString(this.getClass(), pbarpath));
+					// scene.getStylesheets().add(new File(new URI(ResourceGet.getURL(getClass(), pbarpath).toExternalForm()).toString()).getCanonicalPath());
+					scene.getStylesheets().add(ResourceGet.getURL(getClass(), pbarpath).toExternalForm());
+				}
+				catch(Throwable eival) {eival.printStackTrace();}
+			}
 		}
 		
 		
@@ -1964,25 +2068,38 @@ public class TMFM extends JFrame {
 			};
 			
 			{
-				java.awt.MenuItem aboutmi = new java.awt.MenuItem("About");
-				java.awt.MenuItem openmi = new java.awt.MenuItem("Open");
-				java.awt.MenuItem exitmi = new java.awt.MenuItem("Exit");
+				java.awt.MenuItem aboutpmi = new java.awt.MenuItem("About");
+				java.awt.MenuItem licensepmi = new java.awt.MenuItem("License");
+				java.awt.MenuItem newpmi = new java.awt.MenuItem("New");
+				java.awt.MenuItem openpmi = new java.awt.MenuItem("Open");
+				java.awt.MenuItem opendpmi = new java.awt.MenuItem("Open from last opened directory");
+				java.awt.MenuItem exitpmi = new java.awt.MenuItem("Exit");
 				
-				aboutmi.addActionListener((e) -> {
+				aboutpmi.addActionListener((e) -> {
 					showAbout();
 				});
 				
-				openmi.addActionListener((e) -> {
-					open_file();
+				licensepmi.addActionListener((e) -> showLicenseDialog());
+				
+				newpmi.addActionListener((e) -> addDefaultEditor());
+				
+				openpmi.addActionListener((e) -> {
+					open_file(false);
 				});
 				
-				exitmi.addActionListener((e) -> dispatchExitEvent());
+				opendpmi.addActionListener((e) -> open_file(true));
 				
-				StaticWidget.traypop.add(openmi);
+				exitpmi.addActionListener((e) -> dispatchExitEvent());
+				
+				StaticWidget.traypop.add(newpmi);
 				StaticWidget.traypop.addSeparator();
-				StaticWidget.traypop.add(aboutmi);
+				StaticWidget.traypop.add(openpmi);
+				StaticWidget.traypop.add(opendpmi);
 				StaticWidget.traypop.addSeparator();
-				StaticWidget.traypop.add(exitmi);
+				StaticWidget.traypop.add(aboutpmi);
+				StaticWidget.traypop.add(licensepmi);
+				StaticWidget.traypop.addSeparator();
+				StaticWidget.traypop.add(exitpmi);
 			}
 		}
 		
@@ -2016,6 +2133,12 @@ public class TMFM extends JFrame {
 	public TMFM(String title, Runnable run) {
 		super();
 		setTitle(title);
+		try{
+			bot = new Robot();
+		}
+		catch(AWTException bote) {
+			;
+		}
 		initUI();
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		// openEditorFromInernet();
@@ -2309,7 +2432,8 @@ public class TMFM extends JFrame {
 				String fileContent = "";
 				try {
 					if(!(mjfx.filePath.isEmpty() || mjfx.filePath.isBlank() || mjfx.filePath == null))
-						fileContent = FSUtils.getTextFromFile(new File(mjfx.filePath));
+						if(new File(mjfx.filePath).exists() && new File(mjfx.filePath).isFile())
+							fileContent = FSUtils.getTextFromFile(new File(mjfx.filePath));
 				} catch (FileNotFoundException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -2351,6 +2475,7 @@ public class TMFM extends JFrame {
 				return false;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
+				if(e.getMessage() == "no") return false;
 				e.printStackTrace();
 			}
 		}
@@ -2370,8 +2495,10 @@ public class TMFM extends JFrame {
 	public void addWebBrowser() {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
 		Platform.runLater(() -> {
+			final String webkitpath = "jfxth/web.css";
 			SwingWebkitWebBrowser webkit = new SwingWebkitWebBrowser(StaticStorageProperties.home_page);
 			new DropTarget(webkit, new FileDND());
+			webkit.scenery.getStylesheets().add(ResourceGet.getURL(getClass(), webkitpath).toExternalForm());
 			tabbedEditor.addTab(webkit, "webdocument " + webdoccount);
 			webdoccount += 1;
 			refreshList();
@@ -2475,7 +2602,7 @@ public class TMFM extends JFrame {
 	
 	
 	
-	public void open_file() {
+	public void open_file(boolean changeAndUseDefaultDir) {
 		Platform.runLater(() -> pbar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
 		
 		SwingWorker<Object, Object> worker = new SwingWorker<Object, Object>(){
@@ -2486,6 +2613,10 @@ public class TMFM extends JFrame {
 				
 				try {
 					JFileChooser jfc = new JFileChooser();
+					if(changeAndUseDefaultDir) {
+						jfc.setCurrentDirectory(defloc);
+					}
+					jfc.setAccessory(new FindAccessory(jfc));
 					jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					
 					for(int i = 0; i < StaticStorageProperties.filt.length; i++) {
@@ -2497,9 +2628,12 @@ public class TMFM extends JFrame {
 					if(r == JFileChooser.APPROVE_OPTION) {
 						File f = jfc.getSelectedFile();
 						
+						if(changeAndUseDefaultDir) {
+							defloc = f.getParentFile();
+						}
+						
 						open_file_from_File(f);
 					}
-					
 				}
 				catch(Exception e) {
 					e.printStackTrace();
@@ -2564,6 +2698,7 @@ public class TMFM extends JFrame {
 				
 				try {
 					JFileChooser jfc = new JFileChooser();
+					jfc.setAccessory(new FindAccessory(jfc));
 					jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					
 					for(int i = 0; i < StaticStorageProperties.filt.length; i++) {
@@ -2643,6 +2778,7 @@ public class TMFM extends JFrame {
 					TxEditor jfxcomp = (TxEditor)comp;
 					
 					JFileChooser jfc = new JFileChooser();
+					jfc.setAccessory(new FindAccessory(jfc));
 					jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					
 					for(int i = 0; i < StaticStorageProperties.filt.length; i++) {
@@ -2654,25 +2790,33 @@ public class TMFM extends JFrame {
 					if(r == JFileChooser.APPROVE_OPTION) {
 						
 						try {
-							String extension = jfc.getFileFilter().getDescription();
+							String f2 = "";
+							String f2ext = "";
 							File f = jfc.getSelectedFile();
+							String extension = jfc.getFileFilter().getDescription();
+							String actualExtension = FilenameUtils.getExtension(f.toString());
 							if(extension.equals("Text files *.txt")) {
-								String f2 = f.toString();
-								f2 = f2 + ".txt";
+								f2 = f.toString();
+								f2ext = FilenameUtils.getExtension(f2);
+								if(!actualExtension.equals(f2ext)) f2 = f2 + ".txt";
 								
 								f = new File(f2);
 							}
 							else if(extension.equals("CSV files *.csv")) {
-								String f2 = f.toString();
-								f2 = f2 + ".csv";
+								f2 = f.toString();
+								f2ext = FilenameUtils.getExtension(f2);
+								
+								if(!actualExtension.equals(f2ext)) f2 = f2 + ".csv";
 								
 								f = new File(f2);
 							}
 							else if(extension.equals("HTML Document *.html,*.htm")) {
 								// always .html
 								
-								String f2 = f.toString();
-								f2 = f2 + ".html";
+								f2 = f.toString();
+								f2ext = FilenameUtils.getExtension(f2);
+								
+								if(!actualExtension.equals(f2ext)) f2 = f2 + ".html";
 								
 								f = new File(f2);
 							}
