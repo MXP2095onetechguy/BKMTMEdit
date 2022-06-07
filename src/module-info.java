@@ -89,7 +89,8 @@ module MXPSQL.BKMTMEdit {
 	requires transitive rstaui;
 	
 	// swt
-	requires transitive org.eclipse.swt;
+	// you aint portable enuf
+	// requires transitive org.eclipse.swt;
 	
 	// terminalfx
 	// requires transitive terminalfx;

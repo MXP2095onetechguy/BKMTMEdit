@@ -55,10 +55,12 @@ public class WebkitWebBrowser extends VBox {
 		webe.load(homeURL);
 		
 		pbar = new ProgressBar();
+		VBox.setVgrow(pbar, Priority.ALWAYS);
 		
 		boxd = new VBox();
 		{
 			HBox box = new HBox();
+			VBox.setVgrow(box, Priority.SOMETIMES);
 			
 			Button rel = new Button("reload");
 			Button home = new Button("Home");
@@ -160,6 +162,8 @@ public class WebkitWebBrowser extends VBox {
 			boxd.setFillWidth(true);
 			pbar.prefWidthProperty().bind(boxd.widthProperty());
 			boxd.getChildren().addAll(box, pbar);
+			// boxd.getChildren().add(pbar);
+			// boxd.getChildren().add(box);
 		}
 		
 		webe.getLoadWorker().stateProperty().addListener(new ChangeListener<Worker.State>() {
@@ -191,6 +195,8 @@ public class WebkitWebBrowser extends VBox {
 		// webe.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36 Edge/99.0.1150.36");
 		webe.setUserAgent("MXPSQL.BKMTMEdit.Reusable-and-Builtin-WebBrowser/1.0.0 (Windows NT; Win64; x64) yeee JavaFX/19 Safari/613.1 on Java/17 . Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko)");
 		
+		VBox.setVgrow(boxd, Priority.ALWAYS);
+		VBox.setVgrow(webb, Priority.SOMETIMES);
 		getChildren().addAll(boxd, webb);
 		// getChildren().add(boxd);
 	}

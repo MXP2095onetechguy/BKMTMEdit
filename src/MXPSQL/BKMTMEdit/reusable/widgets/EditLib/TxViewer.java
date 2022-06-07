@@ -1,4 +1,4 @@
-package MXPSQL.BKMTMEdit.reusable.widgets;
+package MXPSQL.BKMTMEdit.reusable.widgets.EditLib;
 
 /**
 MIT License

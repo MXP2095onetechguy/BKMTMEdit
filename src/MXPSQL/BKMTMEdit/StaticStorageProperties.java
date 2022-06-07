@@ -94,7 +94,7 @@ public class StaticStorageProperties {
 	public static Namespace ns;
 	
 	// logging
-	public static final Logger logger = LoggerFactory.getLogger(TMMain.class);
+	public static Logger logger = LoggerFactory.getLogger(TMMain.class);;
 	public static boolean logoff = false;
 	
 	// config

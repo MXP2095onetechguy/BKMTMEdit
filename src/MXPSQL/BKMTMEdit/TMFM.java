@@ -48,6 +48,7 @@ import com.formdev.flatlaf.*;
 import javafx.scene.control.*;
 import java.awt.datatransfer.*;
 import groovy.lang.GroovyShell;
+import org.apache.commons.io.*;
 import org.mozilla.javascript.*;
 import org.jdesktop.swingx.tips.*;
 import javafx.application.Platform;
@@ -56,8 +57,8 @@ import org.jdesktop.swingx.error.*;
 import MXPSQL.BKMTMEdit.reusable.utils.*;
 import groovy.lang.GroovyRuntimeException;
 import MXPSQL.BKMTMEdit.reusable.widgets.*;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
+import MXPSQL.BKMTMEdit.reusable.widgets.EditLib.TxEditor;
+import MXPSQL.BKMTMEdit.reusable.widgets.EditLib.TxViewer;
 
 import java.util.concurrent.CountDownLatch;
 import javax.swing.UIManager.LookAndFeelInfo;
@@ -82,6 +83,7 @@ public class TMFM extends JFrame {
 	public JTabbedPane rb = new JTabbedPane();
 	public final int rb_main_i = 0;
 	public final int rb_edit_i = 1;
+	public final int rb_run_i = 2;
 	
 	public Runnable run;
 	
@@ -118,6 +120,8 @@ public class TMFM extends JFrame {
 	protected JRadioButtonMenuItem business;
 	protected JRadioButtonMenuItem businessblue;
 	protected JRadioButtonMenuItem sahara;
+	
+	protected Map<String, String[]> emoticon_insertions = new TreeMap<String, String[]>(); // why not a treemap
 	
 	int webdoccount = 1;
 	int textdoccount = 1;
@@ -216,14 +220,20 @@ public class TMFM extends JFrame {
 	
 	
 	private void initUI() {
+		
+		if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating main panel");
 		JPanel contentPane = new JPanel(new BorderLayout());
+		
 		{
+			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Adding ribbon");
 			contentPane.add(rb, BorderLayout.NORTH);
 			new DropTarget(rb, new FileDND());
 			
 			new DropTarget(filesHoldList, new FileDND());
 			
 			{ 
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating file toolbar for ribbon");
 				JToolBar filetb = new JToolBar();
 				
 				filetb.setFloatable(false);
@@ -409,6 +419,7 @@ public class TMFM extends JFrame {
 			}
 			
 			{
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating editor toolbar for ribbon");
 				JToolBar edittb = new JToolBar();
 				
 				edittb.setFloatable(false);
@@ -548,271 +559,324 @@ public class TMFM extends JFrame {
 			}
 			
 			{
-				JMenuBar mb = new JMenuBar();
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creatingmacros and runner toolbar for ribbon");
+				JToolBar runtb = new JToolBar();
 				
 				{
-					JMenu filem = new JMenu("File");
 					
 					{
-						JMenuItem newfmi = new JMenuItem("New File");
-						newfmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-						newfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/New.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						newfmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								addDefaultEditor();
-							}
-							
-						});
+						JButton term = new JButton(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Term.png")));
 						
-						JMenuItem newwmi = new JMenuItem("New Web Browser");
-						newwmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-						newwmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/NewWeb.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						newwmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								addWebBrowser();
-							}
-							
-						});
+						term.addActionListener((e) -> addTerminal());
 						
-						filem.add(newwmi);
-						filem.add(newfmi);
+						runtb.add(term);
 					}
 					
-					filem.addSeparator();
+					runtb.addSeparator();
 					
 					{
-						JMenuItem openfmi = new JMenuItem("Open file");
-						openfmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-						openfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+						JButton bshrun = new JButton(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")));
+						JButton rjsrun = new JButton(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")));
+						JButton gshrun = new JButton(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")));
+						JButton irbrun = new JButton(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")));
 						
-						JMenuItem openfdmi = new JMenuItem("Open file from last opened directory");
-						openfdmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.ALT_MASK));
-						openfdmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+						bshrun.setToolTipText("Run beanshell macros");
+						rjsrun.setToolTipText("Run javascript macros");
+						gshrun.setToolTipText("Run groovy macros");
+						irbrun.setToolTipText("Run ruby macros");
 						
-						JMenuItem openwmi = new JMenuItem("Open from internet");
-						openwmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-						openwmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/OpenWebRq.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+						bshrun.addActionListener((e) -> runUserBshMacro());
+						rjsrun.addActionListener((e) -> runUserRhinoJSMacro());
+						gshrun.addActionListener((e) -> runUserGroovyMacro());
+						irbrun.addActionListener((e) -> runUserRbMacro());
 						
-						JMenuItem viewfmi = new JMenuItem("View file");
-						viewfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/viewer.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						
-						openfmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								open_file(false);
-							}
-							
-						});
-						
-						openfdmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								open_file(true);
-							}
-							
-						});
-						
-						viewfmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								view_file();
-							}
-							
-						});
-						
-						openwmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								openEditorFromInernet();
-							}
-							
-						});
-						
-						filem.add(openfmi);
-						filem.add(openfdmi);
-						filem.add(viewfmi);
-						filem.add(openwmi);
+						runtb.add(bshrun);
+						runtb.add(rjsrun);
+						runtb.add(gshrun);
+						runtb.add(irbrun);
 					}
 					
-					filem.addSeparator();
-					{
-						JMenuItem infomi = new JMenuItem("Get Info");
+				}
+				
+				rb.add(runtb, "Run");
+			}
+			
+		}
+		
+		{
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating menubar");
+			JMenuBar mb = new JMenuBar();
+			
+			{
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating file menu");
+				JMenu filem = new JMenu("File");
+				
+				{
+					JMenuItem newfmi = new JMenuItem("New File");
+					newfmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+					newfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/New.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					newfmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							addDefaultEditor();
+						}
 						
-						infomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/info.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					});
+					
+					JMenuItem newwmi = new JMenuItem("New Web Browser");
+					newwmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+					newwmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/NewWeb.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					newwmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							addWebBrowser();
+						}
 						
-						infomi.addActionListener((e) -> {
-							Component comp = tabbedEditor.getSelectedComponent();
-							
-							if(!(comp instanceof TxEditor))
-								return;
-							
-							TxEditor editor = (TxEditor) comp;
-							
+					});
+					
+					filem.add(newwmi);
+					filem.add(newfmi);
+				}
+				
+				filem.addSeparator();
+				
+				{
+					JMenuItem openfmi = new JMenuItem("Open file");
+					openfmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+					openfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					JMenuItem openfdmi = new JMenuItem("Open file from last opened directory");
+					openfdmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.ALT_MASK));
+					openfdmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Open.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					JMenuItem openwmi = new JMenuItem("Open from internet");
+					openwmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+					openwmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/OpenWebRq.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					JMenuItem viewfmi = new JMenuItem("View file");
+					viewfmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/viewer.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					openfmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							open_file(false);
+						}
+						
+					});
+					
+					openfdmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							open_file(true);
+						}
+						
+					});
+					
+					viewfmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							view_file();
+						}
+						
+					});
+					
+					openwmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							openEditorFromInernet();
+						}
+						
+					});
+					
+					filem.add(openfmi);
+					filem.add(openfdmi);
+					filem.add(viewfmi);
+					filem.add(openwmi);
+				}
+				
+				filem.addSeparator();
+				{
+					JMenuItem infomi = new JMenuItem("Get Info");
+					
+					infomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/info.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					infomi.addActionListener((e) -> {
+						Component comp = tabbedEditor.getSelectedComponent();
+						
+						if(!(comp instanceof TxEditor))
+							return;
+						
+						TxEditor editor = (TxEditor) comp;
+						
+						try {
+							getInfoDialog(new File(editor.filePath));
+						}
+						catch(IOException ioe) {
+							ioe.printStackTrace();
+							JXErrorPane.showDialog(dis, new ErrorInfo("IO Error", "An IOException had occured", "An IOException has occured while creating the dialog", "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
+						}
+					});
+					
+					filem.add(infomi);
+				}
+				
+				filem.addSeparator();
+				{
+					JMenuItem savemi = new JMenuItem("Save");
+					JMenuItem saveasmi = new JMenuItem("Save As");
+					
+					savemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+					saveasmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+					savemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Save.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					saveasmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/SaveAs.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					
+					savemi.addActionListener((e) -> {
+						save_file(null);
+					});
+					
+					saveasmi.addActionListener((e) -> {
+						saveAs_file(null);
+					});
+					
+					filem.add(savemi);
+					filem.add(saveasmi);
+				}
+				
+				filem.addSeparator();
+				{
+					JMenuItem closetabmi = new JMenuItem("Close tab");
+					JMenuItem closealltabmi = new JMenuItem("Close all tabs");
+				
+					closetabmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
+					closealltabmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+					closetabmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/CloseTab.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					closealltabmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/CloseAll.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+				
+					closetabmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
 							try {
-								getInfoDialog(new File(editor.filePath));
+								closeCurrentTab(true);
+							} catch (InterruptedException | IOException e1) {
+								// TODO Auto-generated catch block
 							}
-							catch(IOException ioe) {
-								ioe.printStackTrace();
-								JXErrorPane.showDialog(dis, new ErrorInfo("IO Error", "An IOException had occured", "An IOException has occured while creating the dialog", "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
-							}
-						});
-						
-						filem.add(infomi);
-					}
+						}
 					
-					filem.addSeparator();
-					{
-						JMenuItem savemi = new JMenuItem("Save");
-						JMenuItem saveasmi = new JMenuItem("Save As");
-						
-						savemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-						saveasmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-						savemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Save.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						saveasmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/SaveAs.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						
-						savemi.addActionListener((e) -> {
-							save_file(null);
-						});
-						
-						saveasmi.addActionListener((e) -> {
-							saveAs_file(null);
-						});
-						
-						filem.add(savemi);
-						filem.add(saveasmi);
-					}
+					});
 					
-					filem.addSeparator();
-					{
-						JMenuItem closetabmi = new JMenuItem("Close tab");
-						JMenuItem closealltabmi = new JMenuItem("Close all tabs");
-					
-						closetabmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
-						closealltabmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-						closetabmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/CloseTab.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						closealltabmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/CloseAll.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-					
-						closetabmi.addActionListener(new ActionListener() {
+					closealltabmi.addActionListener(new ActionListener() {
 
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								try {
-									closeCurrentTab(true);
-								} catch (InterruptedException | IOException e1) {
-									// TODO Auto-generated catch block
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							closeAllTab();
+						}
+						
+					});
+				
+					filem.add(closetabmi);
+					filem.add(closealltabmi);
+				}
+				
+				filem.addSeparator();
+				
+				{
+					JMenuItem exitmi = new JMenuItem("Exit");
+					exitmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Exit.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+					exitmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK+InputEvent.ALT_DOWN_MASK));
+					
+					exitmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							dispatchExitEvent();
+						}
+					
+					});
+				
+					filem.add(exitmi);
+				}
+				
+				mb.add(filem);
+			}
+
+            {
+            	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating editor menu");
+                editm = new JMenu("Edit");
+                mb.add(editm);
+                
+                {
+                	JMenu searchm = new JMenu("Search");
+                	
+                    JMenuItem findmi = new JMenuItem("Find");
+                    JMenuItem replacemi = new JMenuItem("Replace");
+                    
+                    findmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
+                    replacemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+                    findmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/search.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    replacemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/replace.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                    
+                    findmi.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							Component comp = tabbedEditor.getSelectedComponent();
+							if(comp instanceof TxEditor) {
+								TxEditor mjfx = (TxEditor) comp;
+								if(mjfx.findDialog()) {
+									markChanged();
 								}
 							}
-						
-						});
-						
-						closealltabmi.addActionListener(new ActionListener() {
+						}
+                    	
+                    });
+                    
+                    replacemi.addActionListener(new ActionListener() {
 
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								closeAllTab();
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							// TODO Auto-generated method stub
+							Component comp = tabbedEditor.getSelectedComponent();
+							if(comp instanceof TxEditor) {
+								TxEditor mjfx = (TxEditor) comp;
+								if(mjfx.replaceDialog()) {
+									markChanged();
+								}
 							}
-							
-						});
-					
-						filem.add(closetabmi);
-						filem.add(closealltabmi);
-					}
-					
-					filem.addSeparator();
-					
-					{
-						JMenuItem exitmi = new JMenuItem("Exit");
-						exitmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Exit.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-						exitmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK+InputEvent.ALT_DOWN_MASK));
-						
-						exitmi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								dispatchExitEvent();
-							}
-						
-						});
-					
-						filem.add(exitmi);
-					}
-					
-					mb.add(filem);
-				}
-
+						}
+                    	
+                    });
+                	
+                	searchm.add(findmi);
+                	searchm.add(replacemi);
+                	
+                	editm.add(searchm);
+                }
+                
                 {
-                    editm = new JMenu("Edit");
-                    mb.add(editm);
-                    
-                    {
-                    	JMenu searchm = new JMenu("Search");
-                    	
-                        JMenuItem findmi = new JMenuItem("Find");
-                        JMenuItem replacemi = new JMenuItem("Replace");
-                        
-                        findmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
-                        replacemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-                        findmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/search.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                        replacemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/replace.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                        
-                        findmi.addActionListener(new ActionListener() {
-
-    						@Override
-    						public void actionPerformed(ActionEvent e) {
-    							// TODO Auto-generated method stub
-    							Component comp = tabbedEditor.getSelectedComponent();
-    							if(comp instanceof TxEditor) {
-    								TxEditor mjfx = (TxEditor) comp;
-    								if(mjfx.findDialog()) {
-    									markChanged();
-    								}
-    							}
-    						}
-                        	
-                        });
-                        
-                        replacemi.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								Component comp = tabbedEditor.getSelectedComponent();
-    							if(comp instanceof TxEditor) {
-    								TxEditor mjfx = (TxEditor) comp;
-    								if(mjfx.replaceDialog()) {
-    									markChanged();
-    								}
-    							}
-							}
-                        	
-                        });
-                    	
-                    	searchm.add(findmi);
-                    	searchm.add(replacemi);
-                    	
-                    	editm.add(searchm);
-                    }
-                    
-                    {
-                    	JMenu insertm = new JMenu("Insert");
-                    	
+                	JMenu insertm = new JMenu("Insert");
+                	
+                	{
+                		JMenu textspam = new JMenu("Useful texts");
+                		
+                		textspam.setToolTipText("Not really with some of them");
+                		
                     	JMenuItem insertUser = new JMenuItem("Username");
                     	JMenuItem insertTime = new JMenuItem("Time");
                     	JMenuItem insertLorem = new JMenuItem("Lorem");
@@ -833,494 +897,571 @@ public class TMFM extends JFrame {
                     	insertLorem.addActionListener((e) -> insertLorem());
                     	borkit.addActionListener((e) -> borkText());
                     	
-                    	insertm.add(insertUser);
-                    	insertm.add(insertTime);
-                    	insertm.add(insertLorem);
-                    	insertm.add(borkit);
+                    	textspam.add(insertUser);
+                    	textspam.add(insertTime);
+                    	textspam.add(insertLorem);
+                    	textspam.add(borkit);
                     	
-                    	editm.add(insertm);
-                    }
-                    
-                    {
-                    	JMenu clipbm = new JMenu("Clipboard");
-                    	
-                    	JMenuItem copymi = new JMenuItem("Copy");
-                    	JMenuItem pastemi = new JMenuItem("Paste");
-                    	JMenuItem cutmi = new JMenuItem("Cut");
-                    	
-                    	copymi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
-                    	pastemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
-                    	cutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
-                    	
-                    	copymi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/copy.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	pastemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/paste.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	cutmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/cut.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	
-                    	cutmi.addActionListener((e) -> cutText());
-                    	
-                    	copymi.addActionListener((e) -> copyText());
-                    	
-                    	pastemi.addActionListener((e) -> pasteText());
-                    	
-                    	clipbm.add(copymi);
-                    	clipbm.add(pastemi);
-                    	clipbm.add(cutmi);
-                    	editm.add(clipbm);
-                    }
-                    
-                    {
-                    	JMenu historym = new JMenu("History");
-                    	
-                    	JMenuItem undomi = new JMenuItem("Undo");
-                    	JMenuItem redomi = new JMenuItem("Redo");
-                    	
-                    	undomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/undo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	redomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/redo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	
-    					undomi.addActionListener((e) -> {
-    						if(tabbedEditor.getSelectedIndex() != -1) {
-    							Component comp = tabbedEditor.getSelectedComponent();
-    							
-    							if(comp instanceof TxEditor) {
-    								TxEditor mjfx = (TxEditor) comp;
-    								
-    								mjfx.area.undoLastAction();
-    							}
-    						}
-    					});
-    					
-    					redomi.addActionListener((e) -> {
-    						if(tabbedEditor.getSelectedIndex() != -1) {
-    							Component comp = tabbedEditor.getSelectedComponent();
-    							
-    							if(comp instanceof TxEditor) {
-    								TxEditor mjfx = (TxEditor) comp;
-    								
-    								
-    								
-    								mjfx.area.redoLastAction();
-    							}
-    						}
-    					});
-    					
-    					historym.add(undomi);
-    					historym.add(redomi);
-                    	
-                    	editm.add(historym);
-                    }
-                    
-                    {
-                    	JMenu selutilm = new JMenu("Selection Utilities");
-                    	
-                    	JMenuItem selallmi = new JMenuItem("Select all");
-                    	JMenuItem delselmi = new JMenuItem("Delete Selected");
-                    	
-                    	selallmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
-                    	
-                    	selallmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/selall.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	delselmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/delsel.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	
-                    	selallmi.addActionListener((e) -> selectAllText());
-                    	
-                    	delselmi.addActionListener((e) -> deleteAllText());
-                    	
-                    	selutilm.add(selallmi);
-                    	selutilm.add(delselmi);
-                    	
-                    	editm.add(selutilm);
-                    }
-                }
-                
-                {
-                	JMenu viewm = new JMenu("View");
-                	
-                	{
-                		JMenu componentviewm = new JMenu("Components");
-                		
-                    	rbvisiblemi = new JCheckBoxMenuItem("Show Ribbon");
-                    	docpanevisiblemi = new JCheckBoxMenuItem("Show Document Pane");
-                    	statusPanelvisiblemi = new JCheckBoxMenuItem("Show Status Panel");
-                    	
-                    	rbvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	docpanevisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	statusPanelvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                    	
-                    	rbvisiblemi.setSelected(true);
-                    	docpanevisiblemi.setSelected(true);
-                    	statusPanelvisiblemi.setSelected(true);
-                    	
-                    	rbvisiblemi.addActionListener((e) -> {
-                    		if(rbvisiblemi.getModel().isSelected()) rb.setVisible(true);
-                    		else rb.setVisible(false);
-                    	});
-                    	
-                    	statusPanelvisiblemi.addActionListener((e) -> {
-                    		if(statusPanelvisiblemi.getModel().isSelected()) statusPanel.setVisible(true);
-                    		else statusPanel.setVisible(false);
-                    	});
-                    	
-                    	docpanevisiblemi.addActionListener((e) -> {
-                    		if(docpanevisiblemi.getModel().isSelected()) jsplit.setLeftComponent(documentPane);
-                    		else jsplit.remove(documentPane);
-                    	});
-                    	
-                    	docpanevisiblemi.setEnabled(false);
-                    	docpanevisiblemi.setToolTipText("It's broken alright. The theme will not change and it's buggy ok.");
-                    	
-                    	componentviewm.add(rbvisiblemi);
-                    	componentviewm.add(docpanevisiblemi);
-                    	componentviewm.add(statusPanelvisiblemi);
-                    	
-                    	viewm.add(componentviewm);
+                    	insertm.add(textspam);
                 	}
                 	
                 	{
-                		JMenu appearancem = new JMenu("Appearance");
+                		JMenu emoticons = new JMenu("Emoticons");
                 		
-                		appearancem.setToolTipText("Only few )selected themes are available here");
+                		emoticons.setToolTipText("Emoji unicode asciification (it's asciified)");
                 		
-                		ButtonGroup bgr = new ButtonGroup();
-                		// ButtonGroup pointer = new ButtonGroup();
-                		
-                		// Taal for Theme-Appearance-Action-Listener
-                		ActionListener Taal = new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								// TODO Auto-generated method stub
-								try {
-									switch(e.getActionCommand()) {								
-										case "Metal":
-											UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "System Platform":
-											UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "Nimbus":
-										    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-										        if ("Nimbus".equals(info.getName())) {
-										        	UIManager.setLookAndFeel(info.getClassName());
-										        	SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-										            break;
-										        }
-										    }
-											break;
-										case "FlatLaf Light":
-											StaticStorageProperties.logger.info("FlatSYS");
-											UIManager.setLookAndFeel( new FlatLightLaf() );
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "FlatLaf Dark":
-											UIManager.setLookAndFeel( new FlatDarkLaf() );
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "FlatLaf Intellij":
-											UIManager.setLookAndFeel( new FlatIntelliJLaf() );
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "FlatLaf Darcula":
-											UIManager.setLookAndFeel( new FlatDarculaLaf() );
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "Business":
-											RadianceThemingCortex.GlobalScope.setSkin(new BusinessSkin());
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "Business Blue":
-											RadianceThemingCortex.GlobalScope.setSkin(new BusinessBlueSteelSkin());
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										case "Sahara":
-											RadianceThemingCortex.GlobalScope.setSkin(new SaharaSkin());
-											SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-											break;
-										default:
-											StaticStorageProperties.logger.info("No ok 4 theme");
-											break;
-									}
-								} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-										| UnsupportedLookAndFeelException e1) {
-									// TODO Auto-generated catch block
-									e1.printStackTrace();
-									JXErrorPane.showDialog(dis, new ErrorInfo("Theming problem", "A problem had occured trying to theme", "The problem occured while switching \ntheme due to that theme being available or unsupported", "Theme Error", e1, Level.WARNING, new HashMap<String, String>()));
-								}
-								
-								SwingUtilities.updateComponentTreeUI(StaticWidget.window);
-								
-								// prevents anything funny from happening if you switch from the radiance theme to the flatlaf themes
-								// Funny things that happen: the UI becomes garbage and an exception is thrown, we don't want that funny thing
-								switch(e.getActionCommand()) {
-									case "Business":
-									case "Business Blue":
-									case "Sahara":
-										flatlightthememi.setEnabled(false);
-										flatdarkthememi.setEnabled(false);
-										flatintellijthememi.setEnabled(false);
-										flatDCMthememi.setEnabled(false);
-										break;
-									default:
-										flatlightthememi.setEnabled(true);
-										flatdarkthememi.setEnabled(true);
-										flatintellijthememi.setEnabled(true);
-										flatDCMthememi.setEnabled(true);
-										break;
-								}
-							}
-                			
-                		};
-                		
-                		metalthememi = new JRadioButtonMenuItem("Metal");
-                		platformthememi = new JRadioButtonMenuItem("System Platform");
-                		nimbusthememi = new JRadioButtonMenuItem("Nimbus");
-                		flatlightthememi = new JRadioButtonMenuItem("FlatLaf Light");
-                		flatdarkthememi = new JRadioButtonMenuItem("FlatLaf Dark");
-                		flatintellijthememi= new JRadioButtonMenuItem("FlatLaf Intellij");
-                		flatDCMthememi = new JRadioButtonMenuItem("FlatLaf Darcula");
-                		business = new JRadioButtonMenuItem("Business");
-                		businessblue = new JRadioButtonMenuItem("Business Blue");
-                		sahara = new JRadioButtonMenuItem("Sahara");
-                		
-                		metalthememi.addActionListener(Taal);
-                		platformthememi.addActionListener(Taal);
-                		nimbusthememi.addActionListener(Taal);
-                		flatlightthememi.addActionListener(Taal);
-                		flatdarkthememi.addActionListener(Taal);
-                		flatintellijthememi.addActionListener(Taal);
-                		flatDCMthememi.addActionListener(Taal);
-                		business.addActionListener(Taal);
-                		businessblue.addActionListener(Taal);
-                		sahara.addActionListener(Taal);
-                		
-                		bgr.add(metalthememi);
-                		bgr.add(platformthememi);
-                		bgr.add(nimbusthememi);
-                		bgr.add(flatlightthememi);
-                		bgr.add(flatdarkthememi);
-                		bgr.add(flatintellijthememi);
-                		bgr.add(flatDCMthememi);
-                		bgr.add(business);
-                		bgr.add(businessblue);
-                		bgr.add(sahara);
-                		
-                		appearancem.add(metalthememi);
-                		appearancem.add(platformthememi);
-                		appearancem.add(nimbusthememi);
-                		appearancem.addSeparator();
-                		appearancem.add(flatlightthememi);
-                		appearancem.add(flatdarkthememi);
-                		appearancem.add(flatintellijthememi);
-                		appearancem.add(flatDCMthememi);
-                		appearancem.addSeparator();
-                		appearancem.add(business);
-                		appearancem.add(businessblue);
-                		appearancem.add(sahara);
-                		
-                		// appearancem.setEnabled(false);
-                		
-                		StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
-                		bgr.clearSelection();
-                		switch(StaticStorageProperties.theme) {
-                			case "metal":
-                				metalthememi.setSelected(true);
-                				break;
-                			case "platform":
-                				platformthememi.setSelected(true);
-                				break;
-                			case "nimbus":
-                				nimbusthememi.setSelected(true);
-                				break;
-                			case "flatlightlaf":
-                				flatlightthememi.setSelected(true);
-                				break;
-                			case "flatdarklaf":
-                				flatdarkthememi.setSelected(true);
-                				break;
-                			case "flatintellijlaf":
-                				flatintellijthememi.setSelected(true);
-                				break;
-                			case "flatdarculalaf":
-                				flatDCMthememi.setSelected(true);
-                				break;
-                			case "business":
-                				business.setSelected(true);
-                				break;
-                			case "businessblue":
-                				businessblue.setSelected(true);
-                				break;
-                			case "sahara":
-                				sahara.setSelected(true);
-                				break;
-                			default:
-            					bgr.clearSelection();
-            					break;
+                		{
+                			emoticon_insertions.put("Happy", new String[] {":)", "XD", ":D", "<3"});
+                			emoticon_insertions.put("Sad", new String[] {":(", ":'(", "T_T"});
+                			emoticon_insertions.put("No I Angery", new String[] {">:|", ">:("});
+                			emoticon_insertions.put("What is dis?", new String[] {"-_-", "._.", ":|"});
+                			emoticon_insertions.put("A", new String[] {":o", ":O"});
+                			emoticon_insertions.put("is others", new String[] {":3", "UwU", ":P"});
                 		}
                 		
-                		viewm.add(appearancem);
+                		{
+                			for(Map.Entry<String, String[]> entry : emoticon_insertions.entrySet()) {
+                				String CAT_egory = entry.getKey();
+                				String[] things = entry.getValue();
+                				JMenu catm = new JMenu(CAT_egory);
+                				
+                				emoticons.add(catm);
+                				
+                				if(things == null) continue;
+                				
+                				for(String ic : things) {
+                					JMenuItem thingmi = new JMenuItem(ic);
+                					
+                					thingmi.addActionListener((e) -> {
+                				    	Component comp = tabbedEditor.getSelectedComponent();
+                				    	
+                				    	if(comp instanceof TxEditor) {
+                				    		TxEditor mjfx = (TxEditor) comp;
+                				    		
+                				    		mjfx.area.insert(ic, mjfx.area.getCaretPosition());
+                				    		markChanged();
+                				    	}
+                					});
+                					
+                					catm.add(thingmi);
+                				}
+                				
+                			}
+                		}
+                		
+                		insertm.add(emoticons);
                 	}
                 	
-                	mb.add(viewm);
+                	editm.add(insertm);
                 }
                 
                 {
-                	JMenu pluginm = new JMenu("Plugins");
-                	pluginm.setEnabled(false);
-                	bshpluginm = new JMenu("Beanshell Plugins");
-                	bshpluginm.setEnabled(false);
+                	JMenu clipbm = new JMenu("Clipboard");
                 	
-                	for(Map.Entry<String, String> plugin : StaticStorageProperties.bshPlugins.entrySet()) {
-                		JMenuItem pluginmi = null;
-                		bshpluginm.setEnabled(true);
-                		pluginm.setEnabled(true);
-                		
-                		try {
-                			pluginmi = new JMenuItem(FilenameUtils.getBaseName(new File(plugin.getKey()).getCanonicalFile().getName()));
-						} catch (IOException e) {
-							pluginmi= new JMenuItem("Plugin");
-						}
-                		
-                		pluginmi.addActionListener((e) -> {
-                			bsh.Interpreter i = new bsh.Interpreter();
-                			
-                			try {
-                				// System.out.println(plugin.getValue());
-                				i.set("tabbedEditor", tabbedEditor);
-								i.eval(plugin.getValue());
-							} catch (EvalError e1) {
-								// TODO Auto-generated catch block
-								ByteArrayOutputStream baos = new ByteArrayOutputStream();
-								PrintStream bs = new PrintStream(baos);
-								e1.printStackTrace(bs);
-								StaticStorageProperties.logger.error("Evaluation error");
-								System.err.println(baos.toString());
-								JXErrorPane.showDialog(dis, new ErrorInfo("Beanshell Plugin Evaluation Error", "Your plugin is broken", "An exception occured while evaluating the plugin", "PluginError", e1, Level.SEVERE, new HashMap<String, String>()));
+                	JMenuItem copymi = new JMenuItem("Copy");
+                	JMenuItem pastemi = new JMenuItem("Paste");
+                	JMenuItem cutmi = new JMenuItem("Cut");
+                	
+                	copymi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
+                	pastemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
+                	cutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
+                	
+                	copymi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/copy.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	pastemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/paste.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	cutmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/cut.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	
+                	cutmi.addActionListener((e) -> cutText());
+                	
+                	copymi.addActionListener((e) -> copyText());
+                	
+                	pastemi.addActionListener((e) -> pasteText());
+                	
+                	clipbm.add(copymi);
+                	clipbm.add(pastemi);
+                	clipbm.add(cutmi);
+                	editm.add(clipbm);
+                }
+                
+                {
+                	JMenu historym = new JMenu("History");
+                	
+                	JMenuItem undomi = new JMenuItem("Undo");
+                	JMenuItem redomi = new JMenuItem("Redo");
+                	
+                	undomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/undo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	redomi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/redo.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	
+					undomi.addActionListener((e) -> {
+						if(tabbedEditor.getSelectedIndex() != -1) {
+							Component comp = tabbedEditor.getSelectedComponent();
+							
+							if(comp instanceof TxEditor) {
+								TxEditor mjfx = (TxEditor) comp;
+								
+								mjfx.area.undoLastAction();
 							}
-                		});
-                		
-                		bshpluginm.add(pluginmi);
-                	}
-                	
-                	jarpluginm = new JMenu("JAR Plugins");
-                	jarpluginm.setEnabled(false);
-                	
-                	pluginm.add(bshpluginm);
-                	pluginm.add(jarpluginm);
-                	mb.add(pluginm);
-                }
-                
-                {
-                	JMenu runm = new JMenu("Run");
-                	
-                	JMenuItem runtermmi = new JMenuItem("add terminal");
-                	JMenuItem browsermi = new JMenuItem("Open url in web browser");
-                	JMenuItem bshmacrosmi = new JMenuItem("Run beanshell macros");
-                	JMenuItem rjsmacrosmi = new JMenuItem("Run rhino javascript macros");
-                	JMenuItem groovymacrosmi = new JMenuItem("Run Groovy macros");
-                	JMenuItem rbmi = new JMenuItem("Run Ruby Macros");
-                	JMenuItem opendefaulteditormi = new JMenuItem("Open in default editor");
-                	JMenuItem openindefaultmi = new JMenuItem("Open file in default program");
-                	macromediam = new JMenu("Macros");
-                	
-                	
-                	runtermmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
-                	bshmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
-                	rjsmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
-                	groovymacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK));
-                	rbmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
-                	runtermmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Term.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	bshmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	rjsmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	groovymacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	rbmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	
-                	runtermmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							addTerminal();
-						}
-                		
-                	});
-                	
-                	browsermi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							if(Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
-								try {
-									String url = JOptionPane.showInputDialog("URL pls");
-									if(url != null)
-										Desktop.getDesktop().browse(new URI(url));
-								} catch (IOException | URISyntaxException e1) {
-									// TODO Auto-generated catch block
-									e1.printStackTrace();
-								}
-						}
-                		
-                	});
-                	
-                	bshmacrosmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							runUserBshMacro();
-						}
-                		
-                	});
-                	
-                	rjsmacrosmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							runUserRhinoJSMacro();
-						}
-                		
-                	});
-                	
-                	groovymacrosmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							runUserGroovyMacro();
 						}
 					});
-                	
-                	rbmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							runUserRbMacro();
+					
+					redomi.addActionListener((e) -> {
+						if(tabbedEditor.getSelectedIndex() != -1) {
+							Component comp = tabbedEditor.getSelectedComponent();
+							
+							if(comp instanceof TxEditor) {
+								TxEditor mjfx = (TxEditor) comp;
+								
+								
+								
+								mjfx.area.redoLastAction();
+							}
 						}
-                		
+					});
+					
+					historym.add(undomi);
+					historym.add(redomi);
+                	
+                	editm.add(historym);
+                }
+                
+                {
+                	JMenu selutilm = new JMenu("Selection Utilities");
+                	
+                	JMenuItem selallmi = new JMenuItem("Select all");
+                	JMenuItem delselmi = new JMenuItem("Delete Selected");
+                	
+                	selallmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
+                	
+                	selallmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/selall.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	delselmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/delsel.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	
+                	selallmi.addActionListener((e) -> selectAllText());
+                	
+                	delselmi.addActionListener((e) -> deleteAllText());
+                	
+                	selutilm.add(selallmi);
+                	selutilm.add(delselmi);
+                	
+                	editm.add(selutilm);
+                }
+            }
+            
+            {
+            	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating view and appearance menu");
+            	JMenu viewm = new JMenu("View");
+            	
+            	{
+            		JMenu componentviewm = new JMenu("Components");
+            		
+                	rbvisiblemi = new JCheckBoxMenuItem("Show Ribbon");
+                	docpanevisiblemi = new JCheckBoxMenuItem("Show Document Pane");
+                	statusPanelvisiblemi = new JCheckBoxMenuItem("Show Status Panel");
+                	
+                	rbvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	docpanevisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	statusPanelvisiblemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/eyes.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+                	
+                	rbvisiblemi.setSelected(true);
+                	docpanevisiblemi.setSelected(true);
+                	statusPanelvisiblemi.setSelected(true);
+                	
+                	rbvisiblemi.addActionListener((e) -> {
+                		if(rbvisiblemi.getModel().isSelected()) rb.setVisible(true);
+                		else rb.setVisible(false);
                 	});
                 	
-                	opendefaulteditormi.addActionListener(new ActionListener() {
+                	statusPanelvisiblemi.addActionListener((e) -> {
+                		if(statusPanelvisiblemi.getModel().isSelected()) statusPanel.setVisible(true);
+                		else statusPanel.setVisible(false);
+                	});
+                	
+                	docpanevisiblemi.addActionListener((e) -> {
+                		if(docpanevisiblemi.getModel().isSelected()) jsplit.setLeftComponent(documentPane);
+                		else jsplit.remove(documentPane);
+                	});
+                	
+                	docpanevisiblemi.setEnabled(false);
+                	docpanevisiblemi.setToolTipText("It's broken alright. The theme will not change and it's buggy ok.");
+                	
+                	componentviewm.add(rbvisiblemi);
+                	componentviewm.add(docpanevisiblemi);
+                	componentviewm.add(statusPanelvisiblemi);
+                	
+                	viewm.add(componentviewm);
+            	}
+            	
+            	{
+            		JMenu appearancem = new JMenu("Appearance");
+            		
+            		appearancem.setToolTipText("Only few )selected themes are available here");
+            		
+            		ButtonGroup bgr = new ButtonGroup();
+            		// ButtonGroup pointer = new ButtonGroup();
+            		
+            		// Taal for Theme-Appearance-Action-Listener
+            		ActionListener Taal = new ActionListener() {
 
 						@Override
 						public void actionPerformed(ActionEvent e) {
 							// TODO Auto-generated method stub
-							if(Desktop.getDesktop().isSupported(Desktop.Action.EDIT)) {
-								try {
-									Component comp = tabbedEditor.getSelectedComponent();
+							try {
+								switch(e.getActionCommand()) {								
+									case "Metal":
+										UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "System Platform":
+										UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "Nimbus":
+									    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+									        if ("Nimbus".equals(info.getName())) {
+									        	UIManager.setLookAndFeel(info.getClassName());
+									        	SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+									            break;
+									        }
+									    }
+										break;
+									case "FlatLaf Light":
+										StaticStorageProperties.logger.info("FlatSYS");
+										UIManager.setLookAndFeel( new FlatLightLaf() );
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "FlatLaf Dark":
+										UIManager.setLookAndFeel( new FlatDarkLaf() );
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "FlatLaf Intellij":
+										UIManager.setLookAndFeel( new FlatIntelliJLaf() );
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "FlatLaf Darcula":
+										UIManager.setLookAndFeel( new FlatDarculaLaf() );
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "Business":
+										RadianceThemingCortex.GlobalScope.setSkin(new BusinessSkin());
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "Business Blue":
+										RadianceThemingCortex.GlobalScope.setSkin(new BusinessBlueSteelSkin());
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									case "Sahara":
+										RadianceThemingCortex.GlobalScope.setSkin(new SaharaSkin());
+										SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+										break;
+									default:
+										StaticStorageProperties.logger.info("No ok 4 theme");
+										break;
+								}
+							} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+									| UnsupportedLookAndFeelException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+								JXErrorPane.showDialog(dis, new ErrorInfo("Theming problem", "A problem had occured trying to theme", "The problem occured while switching \ntheme due to that theme being available or unsupported", "Theme Error", e1, Level.WARNING, new HashMap<String, String>()));
+							}
+							
+							SwingUtilities.updateComponentTreeUI(StaticWidget.window);
+							
+							// prevents anything funny from happening if you switch from the radiance theme to the flatlaf themes
+							// Funny things that happen: the UI becomes garbage and an exception is thrown, we don't want that funny thing
+							switch(e.getActionCommand()) {
+								case "Business":
+								case "Business Blue":
+								case "Sahara":
+									flatlightthememi.setEnabled(false);
+									flatdarkthememi.setEnabled(false);
+									flatintellijthememi.setEnabled(false);
+									flatDCMthememi.setEnabled(false);
+									break;
+								default:
+									flatlightthememi.setEnabled(true);
+									flatdarkthememi.setEnabled(true);
+									flatintellijthememi.setEnabled(true);
+									flatDCMthememi.setEnabled(true);
+									break;
+							}
+						}
+            			
+            		};
+            		
+            		metalthememi = new JRadioButtonMenuItem("Metal");
+            		platformthememi = new JRadioButtonMenuItem("System Platform");
+            		nimbusthememi = new JRadioButtonMenuItem("Nimbus");
+            		flatlightthememi = new JRadioButtonMenuItem("FlatLaf Light");
+            		flatdarkthememi = new JRadioButtonMenuItem("FlatLaf Dark");
+            		flatintellijthememi= new JRadioButtonMenuItem("FlatLaf Intellij");
+            		flatDCMthememi = new JRadioButtonMenuItem("FlatLaf Darcula");
+            		business = new JRadioButtonMenuItem("Business");
+            		businessblue = new JRadioButtonMenuItem("Business Blue");
+            		sahara = new JRadioButtonMenuItem("Sahara");
+            		
+            		metalthememi.addActionListener(Taal);
+            		platformthememi.addActionListener(Taal);
+            		nimbusthememi.addActionListener(Taal);
+            		flatlightthememi.addActionListener(Taal);
+            		flatdarkthememi.addActionListener(Taal);
+            		flatintellijthememi.addActionListener(Taal);
+            		flatDCMthememi.addActionListener(Taal);
+            		business.addActionListener(Taal);
+            		businessblue.addActionListener(Taal);
+            		sahara.addActionListener(Taal);
+            		
+            		bgr.add(metalthememi);
+            		bgr.add(platformthememi);
+            		bgr.add(nimbusthememi);
+            		bgr.add(flatlightthememi);
+            		bgr.add(flatdarkthememi);
+            		bgr.add(flatintellijthememi);
+            		bgr.add(flatDCMthememi);
+            		bgr.add(business);
+            		bgr.add(businessblue);
+            		bgr.add(sahara);
+            		
+            		appearancem.add(metalthememi);
+            		appearancem.add(platformthememi);
+            		appearancem.add(nimbusthememi);
+            		appearancem.addSeparator();
+            		appearancem.add(flatlightthememi);
+            		appearancem.add(flatdarkthememi);
+            		appearancem.add(flatintellijthememi);
+            		appearancem.add(flatDCMthememi);
+            		appearancem.addSeparator();
+            		appearancem.add(business);
+            		appearancem.add(businessblue);
+            		appearancem.add(sahara);
+            		
+            		// appearancem.setEnabled(false);
+            		
+            		StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
+            		bgr.clearSelection();
+            		switch(StaticStorageProperties.theme) {
+            			case "metal":
+            				metalthememi.setSelected(true);
+            				break;
+            			case "platform":
+            				platformthememi.setSelected(true);
+            				break;
+            			case "nimbus":
+            				nimbusthememi.setSelected(true);
+            				break;
+            			case "flatlightlaf":
+            				flatlightthememi.setSelected(true);
+            				break;
+            			case "flatdarklaf":
+            				flatdarkthememi.setSelected(true);
+            				break;
+            			case "flatintellijlaf":
+            				flatintellijthememi.setSelected(true);
+            				break;
+            			case "flatdarculalaf":
+            				flatDCMthememi.setSelected(true);
+            				break;
+            			case "business":
+            				business.setSelected(true);
+            				break;
+            			case "businessblue":
+            				businessblue.setSelected(true);
+            				break;
+            			case "sahara":
+            				sahara.setSelected(true);
+            				break;
+            			default:
+        					bgr.clearSelection();
+        					break;
+            		}
+            		
+            		viewm.add(appearancem);
+            	}
+            	
+            	mb.add(viewm);
+            }
+            
+            {
+            	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating plugins menu");
+            	JMenu pluginm = new JMenu("Plugins");
+            	pluginm.setEnabled(false);
+            	bshpluginm = new JMenu("Beanshell Plugins");
+            	bshpluginm.setEnabled(false);
+            	
+            	for(Map.Entry<String, String> plugin : StaticStorageProperties.bshPlugins.entrySet()) {
+            		JMenuItem pluginmi = null;
+            		bshpluginm.setEnabled(true);
+            		pluginm.setEnabled(true);
+            		
+            		try {
+            			pluginmi = new JMenuItem(FilenameUtils.getBaseName(new File(plugin.getKey()).getCanonicalFile().getName()));
+					} catch (IOException e) {
+						pluginmi= new JMenuItem("Plugin");
+					}
+            		
+            		pluginmi.addActionListener((e) -> {
+            			bsh.Interpreter i = new bsh.Interpreter();
+            			
+            			try {
+            				// System.out.println(plugin.getValue());
+            				i.set("tabbedEditor", tabbedEditor);
+							i.eval(plugin.getValue());
+						} catch (EvalError e1) {
+							// TODO Auto-generated catch block
+							ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							PrintStream bs = new PrintStream(baos);
+							e1.printStackTrace(bs);
+							StaticStorageProperties.logger.error("Evaluation error");
+							System.err.println(baos.toString());
+							JXErrorPane.showDialog(dis, new ErrorInfo("Beanshell Plugin Evaluation Error", "Your plugin is broken", "An exception occured while evaluating the plugin", "PluginError", e1, Level.SEVERE, new HashMap<String, String>()));
+						}
+            		});
+            		
+            		bshpluginm.add(pluginmi);
+            	}
+            	
+            	jarpluginm = new JMenu("JAR Plugins");
+            	jarpluginm.setEnabled(false);
+            	
+            	pluginm.add(bshpluginm);
+            	pluginm.add(jarpluginm);
+            	mb.add(pluginm);
+            }
+            
+            {
+            	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating menu for macros and more");
+            	JMenu runm = new JMenu("Run");
+            	
+            	JMenuItem runtermmi = new JMenuItem("add terminal");
+            	JMenuItem browsermi = new JMenuItem("Open url in web browser");
+            	JMenuItem bshmacrosmi = new JMenuItem("Run beanshell macros");
+            	JMenuItem rjsmacrosmi = new JMenuItem("Run rhino javascript macros");
+            	JMenuItem groovymacrosmi = new JMenuItem("Run Groovy macros");
+            	JMenuItem rbmi = new JMenuItem("Run Ruby Macros");
+            	JMenuItem opendefaulteditormi = new JMenuItem("Open in default editor");
+            	JMenuItem openindefaultmi = new JMenuItem("Open file in default program");
+            	macromediam = new JMenu("Macros");
+            	
+            	
+            	runtermmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
+            	bshmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+            	rjsmacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+ActionEvent.SHIFT_MASK));
+            	groovymacrosmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK));
+            	rbmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
+            	runtermmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/Term.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	bshmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	rjsmacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	groovymacrosmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	rbmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/macro.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	
+            	runtermmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						addTerminal();
+					}
+            		
+            	});
+            	
+            	browsermi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						if(Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
+							try {
+								String url = JOptionPane.showInputDialog("URL pls");
+								if(url != null)
+									Desktop.getDesktop().browse(new URI(url));
+							} catch (IOException | URISyntaxException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+					}
+            		
+            	});
+            	
+            	bshmacrosmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						runUserBshMacro();
+					}
+            		
+            	});
+            	
+            	rjsmacrosmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						runUserRhinoJSMacro();
+					}
+            		
+            	});
+            	
+            	groovymacrosmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						runUserGroovyMacro();
+					}
+				});
+            	
+            	rbmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						runUserRbMacro();
+					}
+            		
+            	});
+            	
+            	opendefaulteditormi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						if(Desktop.getDesktop().isSupported(Desktop.Action.EDIT)) {
+							try {
+								Component comp = tabbedEditor.getSelectedComponent();
+								
+								if(comp instanceof TxEditor) {
+									TxEditor jfxcomp = (TxEditor) comp;
 									
-									if(comp instanceof TxEditor) {
-										TxEditor jfxcomp = (TxEditor) comp;
-										
-										if(!jfxcomp.filePath.isEmpty() && !jfxcomp.filePath.isBlank())
-											Desktop.getDesktop().edit(new File(jfxcomp.filePath));
-										else
-											JOptionPane.showMessageDialog(dis, "Not available in filesystem");
-									}
-									else {
-										JOptionPane.showMessageDialog(dis, "Not an editor");
-									}
+									if(!jfxcomp.filePath.isEmpty() && !jfxcomp.filePath.isBlank())
+										Desktop.getDesktop().edit(new File(jfxcomp.filePath));
+									else
+										JOptionPane.showMessageDialog(dis, "Not available in filesystem");
+								}
+								else {
+									JOptionPane.showMessageDialog(dis, "Not an editor");
+								}
+							} catch (IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+								JXErrorPane.showDialog(dis, new ErrorInfo("File reading error", "An error occured whlie reading the file", "IOException at reading a file due to problems \nlike you don't have permission or the file no longer exists.", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
+							}
+						}
+					}
+            		
+            	}); 
+            	
+            	openindefaultmi.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						JFileChooser jfc = new JFileChooser();
+						
+						jfc.setAccessory(new FindAccessory(jfc));
+						jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+						
+						if(jfc.showOpenDialog(dis) == JFileChooser.APPROVE_OPTION) {
+							if(Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+								try {
+									Desktop.getDesktop().open(jfc.getSelectedFile());
 								} catch (IOException e1) {
 									// TODO Auto-generated catch block
 									e1.printStackTrace();
@@ -1328,98 +1469,77 @@ public class TMFM extends JFrame {
 								}
 							}
 						}
-                		
-                	}); 
-                	
-                	openindefaultmi.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							// TODO Auto-generated method stub
-							JFileChooser jfc = new JFileChooser();
-							
-							jfc.setAccessory(new FindAccessory(jfc));
-							jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-							
-							if(jfc.showOpenDialog(dis) == JFileChooser.APPROVE_OPTION) {
-								if(Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
-									try {
-										Desktop.getDesktop().open(jfc.getSelectedFile());
-									} catch (IOException e1) {
-										// TODO Auto-generated catch block
-										e1.printStackTrace();
-										JXErrorPane.showDialog(dis, new ErrorInfo("File reading error", "An error occured whlie reading the file", "IOException at reading a file due to problems \nlike you don't have permission or the file no longer exists.", "IO Error", e1, Level.SEVERE, new HashMap<String, String>()));
-									}
-								}
-							}
-						}
-                		
-                	});
-                	
-                	runm.add(runtermmi);
-                	runm.add(browsermi);
-                	runm.addSeparator();
-                	macromediam.add(bshmacrosmi);
-                	macromediam.add(rjsmacrosmi);
-                	macromediam.add(groovymacrosmi);
-                	macromediam.add(rbmi);
-                	runm.add(macromediam);
-                	runm.addSeparator();
-                	runm.add(opendefaulteditormi);
-                	runm.add(openindefaultmi);
-                	
-                	mb.add(runm);
-                }
-                
-                mb.add(Box.createHorizontalGlue());
-                
-                {
-                	JMenu helpm = new JMenu("Help");
-                	
-                	JMenuItem aboutmi = new JMenuItem("About");
-                	JMenuItem licensemi = new JMenuItem("License");
-                	JMenuItem tipmemi = new JMenuItem("Tip me");
-                	
-                	aboutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
-                	licensemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
-                	
-                	aboutmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/About.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	licensemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/License.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
-                	
-                	aboutmi.addActionListener((e) -> {
-                		showAbout();
-                	});
-                	
-                	tipmemi.addActionListener((e) -> {
-                		Properties tips = new Properties();
-                		
-                		tips.put("tip.1.description", "This program is open source! \nYou can contribute to it as it is licensed under the MIT License.");
-                		tips.put("tip.2.description", "This program uses SwingX, JavaFX, Swing and AWT. \nIt has a web bowser too thanks to JavaFX.");
-                		tips.put("tip.3.description", "You cna change the theme at runtime.");
-                		tips.put("tip.4.description", "Some of the classes are reusable, you can use them in your own projects.");
-                		tips.put("tip.5.description", "Go play SEOS, it's good. Also there is the STDout version of this editor.");
-                		
-                		TipOfTheDayModel ttm = TipLoader.load(tips);
-                		JXTipOfTheDay totd = new JXTipOfTheDay(ttm);
-                		totd.showDialog(dis);
-                	});
-                	
-                	licensemi.addActionListener((e) -> showLicenseDialog());
-                	
-                	helpm.add(aboutmi);
-                	helpm.add(tipmemi);
-                	helpm.addSeparator();
-                	helpm.add(licensemi);
-                	
-                	mb.add(helpm);
-                }
-				
-                new DropTarget(mb, new FileDND());
-				setJMenuBar(mb);
-			}
+					}
+            		
+            	});
+            	
+            	runm.add(runtermmi);
+            	runm.add(browsermi);
+            	runm.addSeparator();
+            	macromediam.add(bshmacrosmi);
+            	macromediam.add(rjsmacrosmi);
+            	macromediam.add(groovymacrosmi);
+            	macromediam.add(rbmi);
+            	runm.add(macromediam);
+            	runm.addSeparator();
+            	runm.add(opendefaulteditormi);
+            	runm.add(openindefaultmi);
+            	
+            	mb.add(runm);
+            }
+            
+            mb.add(Box.createHorizontalGlue());
+            
+            {
+            	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating informational help and about menu");
+            	JMenu helpm = new JMenu("Help");
+            	
+            	JMenuItem aboutmi = new JMenuItem("About");
+            	JMenuItem licensemi = new JMenuItem("License");
+            	JMenuItem tipmemi = new JMenuItem("Tip me");
+            	
+            	aboutmi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
+            	licensemi.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK+InputEvent.ALT_DOWN_MASK+ActionEvent.SHIFT_MASK));
+            	
+            	aboutmi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/About.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	licensemi.setIcon(new ImageIcon(new ImageIcon(ResourceGet.getURL(this.getClass(), "Resource/License.png")).getImage().getScaledInstance(16, 16, Image.SCALE_DEFAULT)));
+            	
+            	aboutmi.addActionListener((e) -> {
+            		showAbout();
+            	});
+            	
+            	tipmemi.addActionListener((e) -> {
+            		Properties tips = new Properties();
+            		
+            		tips.put("tip.1.description", "This program is open source! \nYou can contribute to it as it is licensed under the MIT License.");
+            		tips.put("tip.2.description", "This program uses SwingX, JavaFX, Swing and AWT. \nIt has a web browser too thanks to JavaFX.");
+            		tips.put("tip.3.description", "You can change the theme at runtime.");
+            		tips.put("tip.4.description", "Some of the classes are reusable, you can use them in your own projects.");
+            		tips.put("tip.5.description", "You can use this with your shell scripts, \njust use the -l and the -se flags.");
+            		tips.put("tip.6.description", "BKMTMEdit runs on the Java 11 Platform.");
+            		
+            		TipOfTheDayModel ttm = TipLoader.load(tips);
+            		JXTipOfTheDay totd = new JXTipOfTheDay(ttm);
+            		totd.showDialog(dis);
+            	});
+            	
+            	licensemi.addActionListener((e) -> showLicenseDialog());
+            	
+            	helpm.add(aboutmi);
+            	helpm.add(tipmemi);
+            	helpm.addSeparator();
+            	helpm.add(licensemi);
+            	
+            	mb.add(helpm);
+            }
+			
+            new DropTarget(mb, new FileDND());
+			setJMenuBar(mb);
 		}
 		
-		{	
+		{
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating status bar");
+			
 			GridBagLayout gbl = new GridBagLayout();
 			GridBagConstraints gbc = new GridBagConstraints();
 	        gbc.gridx = 0;
@@ -1430,6 +1550,7 @@ public class TMFM extends JFrame {
 			statusPanel = new JPanel(new BorderLayout());
 			statusPanel.setBorder(BorderFactory.createEtchedBorder());
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating progress bar");
 			JFXPanel javafxPanel = new JFXPanel();
 			pbar = new ProgressBar(0);
 			Scene scene = new Scene(pbar);
@@ -1439,6 +1560,7 @@ public class TMFM extends JFrame {
 			statusPanel.add(javafxPanel, gbc);
 			new DropTarget(javafxPanel, new FileDND());
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating info bar");
 			JXStatusBar statusBar = new JXStatusBar();
 			statusBar.setBorder((Border) new BevelBorder(BevelBorder.LOWERED));
 			
@@ -1476,6 +1598,7 @@ public class TMFM extends JFrame {
 			
 			{
 				try{
+					if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Styling progress bar");
 					final String pbarpath = "jfxth/progress.css";
 					// System.out.println(ResourceGet.getString(getClass(), pbarpath));
 					// System.out.println(new File(ResourceGet.getString(getClass(), pbarpath)).exists());
@@ -1488,8 +1611,9 @@ public class TMFM extends JFrame {
 			}
 		}
 		
-		
 		{
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating tabs for documents and filesystem");
+			
 			documentPane = new JTabbedPane();
 			new DropTarget(documentPane, new FileDND());
 			{
@@ -1517,6 +1641,7 @@ public class TMFM extends JFrame {
 			
 			filenameLabel.setText("No lol, I am still starting/");
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Initializing filesystem tab");
 			ftree = new JTree(fmodel);
 			new DropTarget(ftree, new FileDND());
 			
@@ -1963,6 +2088,7 @@ public class TMFM extends JFrame {
 			}
 			
 			try {
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Initializing filesystem worker");
 				ftreeworker = new FTreeWorker(fmodel, StaticStorageProperties.cwdPath);
 				ftreeworker.execute();
 			}
@@ -1983,6 +2109,7 @@ public class TMFM extends JFrame {
 				JXErrorPane.showDialog(dis, new ErrorInfo("Tree Worker Failure", "Failed to create worker", "You need to refresh the tree manually.\nStack is available.\n\n" + stack, "IO Error", ioe, Level.SEVERE, new HashMap<String, String>()));
 			}
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Intializing file changed worker");
 			filechangedworker = new SwingWorker<Void, Object>(){
 
 				@Override
@@ -2033,6 +2160,7 @@ public class TMFM extends JFrame {
 			setContentPane(contentPane);
 			
 			if(StaticStorageProperties.startingFiles != null) {
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Opening starting files");
 				if(StaticStorageProperties.startingFiles.isEmpty()) {
 					addDefaultEditor();
 				}
@@ -2048,9 +2176,11 @@ public class TMFM extends JFrame {
 				}
 			}
 			else {
+				if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating new empty document");
 				addDefaultEditor();
 			}
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Loading the set theme");
 			StaticStorageProperties.theme = StaticStorageProperties.config.getString("theme.type");
 			if(StaticStorageProperties.theme.equals("platform"))
 				tabbedEditor.offsetDim = new int[] {5, 0};
@@ -2067,6 +2197,7 @@ public class TMFM extends JFrame {
 					}
 			};
 			
+			if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating system tray");
 			{
 				java.awt.MenuItem aboutpmi = new java.awt.MenuItem("About");
 				java.awt.MenuItem licensepmi = new java.awt.MenuItem("License");
@@ -2103,6 +2234,7 @@ public class TMFM extends JFrame {
 			}
 		}
 		
+		if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Configuring visibility");
     	{
     		try {
     			if(!StaticStorageProperties.config.getBoolean("visibility.ribbon", true)) rbvisiblemi.doClick();
@@ -2128,6 +2260,18 @@ public class TMFM extends JFrame {
     			// ce.printStackTrace();
     		}
     	}
+    	
+    	if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Tryign to set about handler");
+    	{
+    		try{
+    			Desktop.getDesktop().setAboutHandler((e) -> {
+    				showAbout();
+    			});
+    		}
+    		catch(UnsupportedOperationException uoe) {
+    			// throw uoe;
+    		}
+    	}
 	}
 
 	public TMFM(String title, Runnable run) {
@@ -2139,6 +2283,8 @@ public class TMFM extends JFrame {
 		catch(AWTException bote) {
 			;
 		}
+		
+		if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Intializing UI");
 		initUI();
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		// openEditorFromInernet();
@@ -2150,6 +2296,8 @@ public class TMFM extends JFrame {
 		new DropTarget(dis, new FileDND());
 		
 		// runRbMacro("nonexistent.to_non_existent(nonext2)");
+		
+		rb.setSelectedIndex(rb_main_i);
 		
         addWindowListener(new WindowListener() {
 
@@ -2214,6 +2362,8 @@ public class TMFM extends JFrame {
 			}
         	
         });
+        
+        if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("UI initialization done");
 	}
 	
 	class TextListener implements DocumentListener{
@@ -2269,27 +2419,8 @@ public class TMFM extends JFrame {
 			
 			TxEditor mjfx = (TxEditor) tabbedEditor.getSelectedComponent();
 			
-            int linenum = -1;
-            int columnnum = -1;
-            
-            try {
-                // First we find the position of the caret. This is the number of where the caret is in relation to the start of the JTextArea
-                // in the upper left corner. We use this position to find offset values (eg what line we are on for the given position as well as
-                // what position that line starts on.
-                int caretpos = mjfx.area.getCaretPosition();
-                linenum = mjfx.area.getLineOfOffset(caretpos);
-
-                // We subtract the offset of where our line starts from the overall caret position.
-                // So lets say that we are on line 5 and that line starts at caret position 100, if our caret position is currently 106
-                // we know that we must be on column 6 of line 5.
-                columnnum = caretpos - mjfx.area.getLineStartOffset(linenum);
-
-                // We have to add one here because line numbers start at 0 for getLineOfOffset and we want it to start at 1 for display.
-                linenum += 1;
-                
-                columnnum += 1;
-            }
-            catch(Exception ex) { }
+            int linenum = mjfx.getCurrentLine();
+            int columnnum = mjfx.getCurrentColumn();
             
             caretLabel.setText("Column: " + columnnum + " Line row: " + linenum);
 		}
@@ -2578,7 +2709,7 @@ public class TMFM extends JFrame {
 				cli.setVisible(true);
 				Optional<String> out = cli.get();
 				
-				filenameLabel.setText("Web Browser");
+				filenameLabel.setText("Downloaded document/");
 				
 				
 				addEditor(cli.URL);

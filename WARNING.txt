@@ -1,0 +1,6 @@
+This software, althought production ready, has some quirks that makes it unsuitable in some environment.
+
+- This software is not ready for nuclear facilities, it may just explode to your horror as this thing hangs your computer while you are doomed.
+- May crash if you run too much mallicious script by running out of memory, this means for production environment, do not use the macros unless you made it yourself.
+- The code is messy and can be hard to maintain, if you want to contribute a patch, you will see spaghetti code.
+- API may change, but I will try to keep it stable. Just a heads up.

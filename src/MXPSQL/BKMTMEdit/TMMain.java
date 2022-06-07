@@ -27,18 +27,23 @@ SOFTWARE.
 import java.io.*;
 import java.awt.*;
 import javax.swing.*;
+import java.util.HashMap;
 import java.nio.charset.*;
 import java.util.ArrayList;
 import net.lingala.zip4j.*;
 import java.nio.file.Paths;
 import com.formdev.flatlaf.*;
+import org.jdesktop.swingx.*;
 import java.net.ServerSocket;
 import javax.swing.UIManager.*;
 import org.apache.commons.io.*;
+import java.util.logging.Level;
 import org.apache.commons.lang3.*;
 import org.eclipse.jetty.server.*;
 import javafx.embed.swing.JFXPanel;
+import java.util.NoSuchElementException;
 import MXPSQL.BKMTMEdit.reusable.utils.*;
+import org.jdesktop.swingx.error.ErrorInfo;
 import java.util.concurrent.CountDownLatch;
 import com.github.zafarkhaja.semver.Version;
 import javax.swing.plaf.metal.MetalLookAndFeel;
@@ -64,7 +69,13 @@ import org.pushingpixels.radiance.theming.extras.api.skinpack.OfficeBlue2007Skin
 import org.pushingpixels.radiance.theming.extras.api.skinpack.OfficeBlack2007Skin;
 import org.pushingpixels.radiance.theming.extras.api.skinpack.OfficeSilver2007Skin;
 
-
+/**
+ * We need a dedicated main class. Look how much junk we need, this will bloat
+ * the main window if we put it there.
+ * 
+ * @author MXPSQL
+ *
+ */
 public class TMMain {
 	static boolean mainRunOOM = false;
 	static boolean causeOOM = false;
@@ -152,29 +163,40 @@ public class TMMain {
 		}
 		
 		ps.println("# " + StaticStorageProperties.baseTitle + ", this is the config file.");
-        ps.println("# LOLOLOLOL");
-        ps.println("# I recommend do not mess with anything under bkmtmedit, but there are exceptions");
-        ps.println("# This bkmtmedit.version is under bkmtmedit, do not mess with it unless to update the config");
+	    ps.println("# LOLOLOLOL");
+	    
+	    ps.println("# I recommend do not mess with anything under bkmtmedit, but there are exceptions");
+	    ps.println("# This bkmtmedit.version is under bkmtmedit, do not mess with it unless to update the config");
 		ps.println("bkmtmedit.version=" + String.valueOf(StaticStorageProperties.version));
+		ps.println("# Now you can mess with anything at the bottom");
+		ps.println("bkmtmedit.nolog=true");
+		ps.println();
+		
 		ps.println("# editor related");
 		ps.println("# Here are the themes");
 		ps.println("# native swing themes option: platform, metal, steel, nimbus");
 		ps.println("# flatlaf themes: flatlightlaf, flatdarklaf, flatintellijlaf, flatdarculalaf");
 		ps.println("# radiance themes: business, businessblue, sahara, officesilver2007, officeblue2007, officeblack2007, findingnemo");
 		ps.println("# special theme option: synth, intellijsynth");
-		ps.println("theme.type=flatintellijlaf");
+		ps.print("theme.type=");
+		if(SystemUtils.IS_OS_WINDOWS && SystemUtils.IS_OS_WINDOWS_10) ps.println("platform");
+		else ps.println("flatintellijlaf");
 		ps.println("theme.synthxmlfile=");
 		ps.println("theme.synthintellijjsonfile=");
+		ps.println();
+		
 		ps.println("# UI Visibility");
 		ps.println("# true or false only, example: visibility.ribbon=true");
 		ps.println("visibility.ribbon=true");
 		// ps.println("visibility.documentpane=true");
 		ps.println("visibility.statusbar=true");
 		ps.println();
+		
 		ps.println("# Web browser related");
 		ps.println("# Home page!");
 		ps.println("homepage=https://google.com");
 		ps.println();
+		
 		ps.println("# Extensions");
 		ps.println("# Extend the editor with plugins and macros");
 		ps.println("# For JAR plugins, no need here, pf4j will handle it");
@@ -246,10 +268,106 @@ public class TMMain {
 			System.exit(StaticStorageProperties.parserExit);
 		}
 		
-		StaticStorageProperties.logoff = StaticStorageProperties.ns.get("turnofflog");
-		StaticStorageProperties.SEMode = StaticStorageProperties.ns.getBoolean("se");
+		StaticStorageProperties.logger.debug("Starting up editor.");
 		
-		if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Starting up editor.");
+		try {
+			boolean status = StaticStorageProperties.SSPConfigInit();
+			String floc = StaticStorageProperties.ConfigFileLocation;
+			
+			if(StaticStorageProperties.ns.getString("configPath") != null){
+				floc = StaticStorageProperties.ns.getString("configPath");
+			}
+			
+			File f = new File(floc);
+			
+			if(!status) {
+				System.out.println("I got you a dialog, check it out using alt+tab");
+				JOptionPane.showMessageDialog(null, "You don't have a config. let me make one.");
+				f.createNewFile();
+				
+				makeConfig(f);
+				
+				{
+					System.out.print("Creating config in current directory.");
+					int i = JOptionPane.showConfirmDialog(null, "Do you want to make a config file \nin your current directory?", "Config?", JOptionPane.YES_NO_OPTION);
+					
+					if(i == JOptionPane.YES_OPTION) {
+						System.out.println("Yes");
+						
+						File f2 = new File(StaticStorageProperties.DefaultCurrentDirectoryConfigFileLocation);
+						f2.createNewFile();
+						
+						makeConfig(f2);
+					}
+					else {
+						System.out.println("no");
+					}
+				}
+				
+				System.out.println("Done, check the new dialog using alt+tab");
+				JOptionPane.showMessageDialog(null, "OK, jobs done.");
+				
+				System.exit(StaticStorageProperties.goodExit);
+			}
+			
+			if(!StaticStorageProperties.CWDConfig().isFile())
+				StaticStorageProperties.logger.warn("No config in current directory, using user config");
+			
+			if(!StaticStorageProperties.UserConfig().isFile())
+				StaticStorageProperties.logger.warn("No config in user home directory, using current directory's config");
+			
+			Configurations configs = new Configurations();
+			StaticStorageProperties.config = configs.properties(f);
+			
+			String rawSemConfVer = "";
+			try {
+				rawSemConfVer = StaticStorageProperties.config.getString("bkmtmedit.version");
+			}
+			catch(ConversionException cex){
+				StaticStorageProperties.logger.error("No, smth is wrong with your config version, it's not valid!");
+				System.exit(StaticStorageProperties.badExit);
+			}
+			
+			StaticStorageProperties.remimdMeAboutMacroSafety = (StaticStorageProperties.config.getString("extension.remindmeaboutmacrosafety", "true").equals("true"));
+			
+			if(rawSemConfVer != null) {
+				if(rawSemConfVer.isBlank() && rawSemConfVer.isEmpty()) {
+					StaticStorageProperties.logger.error("The semver is empty.");
+					System.exit(StaticStorageProperties.badExit);
+				}
+			}
+			else {
+				StaticStorageProperties.logger.error("I tink you are missing the version in the config.");
+				System.exit(StaticStorageProperties.badExit);
+			}
+			
+			try{
+				if(StaticStorageProperties.version.greaterThan(Version.valueOf(rawSemConfVer))) {
+					StaticStorageProperties.logger.error("Outdated idot. press alt+tab to get the dialog, \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
+					JOptionPane.showMessageDialog(null, "Too old of a config, I cannot run with this, update your config.");
+					System.exit(StaticStorageProperties.badExit);
+				}
+			}
+			catch(Exception e){
+				StaticStorageProperties.logger.error("I don't think " + rawSemConfVer + " is a valid semantic versioning, I use it ok. Fix it ok. I cannot run with that version. \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
+				System.exit(StaticStorageProperties.badExit);
+			}
+		}
+		catch(ConfigurationException | IOException mex) {
+			JOptionPane.showMessageDialog(null, mex, "Configuration Is Bad", JOptionPane.ERROR_MESSAGE);
+			System.exit(StaticStorageProperties.badExit);
+		}
+		
+		{
+			StaticStorageProperties.logoff =  StaticStorageProperties.ns.get("turnofflog");
+			
+			try{
+				if(StaticStorageProperties.config.containsKey("bkmtmedit.nolog")) StaticStorageProperties.logoff = StaticStorageProperties.config.getBoolean("bkmtmedit.nolog");
+			}
+			catch(NoSuchElementException nsee) {;}
+		}
+		
+		StaticStorageProperties.SEMode = StaticStorageProperties.ns.getBoolean("se");
 		
 		if(StaticStorageProperties.ns.getBoolean("config-wizard")) {
 			File fcwd = StaticStorageProperties.CWDConfig();
@@ -355,88 +473,6 @@ public class TMMain {
 		// JFrame.setDefaultLookAndFeelDecorated(true);
 		
 		try {
-			boolean status = StaticStorageProperties.SSPConfigInit();
-			String floc = StaticStorageProperties.ConfigFileLocation;
-			
-			if(StaticStorageProperties.ns.getString("configPath") != null){
-				floc = StaticStorageProperties.ns.getString("configPath");
-			}
-			
-			File f = new File(floc);
-			
-			if(!status) {
-				System.out.println("I got you a dialog, check it out using alt+tab");
-				JOptionPane.showMessageDialog(null, "You don't have a config. let me make one.");
-				f.createNewFile();
-				
-				makeConfig(f);
-				
-				{
-					System.out.print("Creating config in current directory.");
-					int i = JOptionPane.showConfirmDialog(null, "Do you want to make a config file \nin your current directory?", "Config?", JOptionPane.YES_NO_OPTION);
-					
-					if(i == JOptionPane.YES_OPTION) {
-						System.out.println("Yes");
-						
-						File f2 = new File(StaticStorageProperties.DefaultCurrentDirectoryConfigFileLocation);
-						f2.createNewFile();
-						
-						makeConfig(f2);
-					}
-					else {
-						System.out.println("no");
-					}
-				}
-				
-				System.out.println("Done, check the new dialog using alt+tab");
-				JOptionPane.showMessageDialog(null, "OK, jobs done.");
-				
-				System.exit(StaticStorageProperties.goodExit);
-			}
-			
-			if(!StaticStorageProperties.CWDConfig().isFile())
-				StaticStorageProperties.logger.warn("No config in current directory, using user config");
-			
-			if(!StaticStorageProperties.UserConfig().isFile())
-				StaticStorageProperties.logger.warn("No config in user home directory, using current directory's config");
-			
-			Configurations configs = new Configurations();
-			StaticStorageProperties.config = configs.properties(f);
-			
-			String rawSemConfVer = "";
-			try {
-				rawSemConfVer = StaticStorageProperties.config.getString("bkmtmedit.version");
-			}
-			catch(ConversionException cex){
-				StaticStorageProperties.logger.error("No, smth is wrong with your config version, it's not valid!");
-				System.exit(StaticStorageProperties.badExit);
-			}
-			
-			StaticStorageProperties.remimdMeAboutMacroSafety = (StaticStorageProperties.config.getString("extension.remindmeaboutmacrosafety", "true").equals("true"));
-			
-			if(rawSemConfVer != null) {
-				if(rawSemConfVer.isBlank() && rawSemConfVer.isEmpty()) {
-					StaticStorageProperties.logger.error("The semver is empty.");
-					System.exit(StaticStorageProperties.badExit);
-				}
-			}
-			else {
-				StaticStorageProperties.logger.error("I tink you are missing the version in the config.");
-				System.exit(StaticStorageProperties.badExit);
-			}
-			
-			try{
-				if(StaticStorageProperties.version.greaterThan(Version.valueOf(rawSemConfVer))) {
-					StaticStorageProperties.logger.error("Outdated idot. press alt+tab to get the dialog, \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
-					JOptionPane.showMessageDialog(null, "Too old of a config, I cannot run with this, update your config.");
-					System.exit(StaticStorageProperties.badExit);
-				}
-			}
-			catch(Exception e){
-				StaticStorageProperties.logger.error("I don't think " + rawSemConfVer + " is a valid semantic versioning, I use it ok. Fix it ok. I cannot run with that version. \nbtw your editor version is " + StaticStorageProperties.version.toString() + " and your editor version is " + Version.valueOf(rawSemConfVer) + ", see it's outdated");
-				System.exit(StaticStorageProperties.badExit);
-			}
-			
 			{
 				String bshMacroNameRaw = StaticStorageProperties.config.getString("extension.preloadbshmacros");
 				if(bshMacroNameRaw != null && !bshMacroNameRaw.isEmpty() && !bshMacroNameRaw.isBlank()) {
@@ -591,12 +627,8 @@ public class TMMain {
 				}
 			}
 		}
-		catch(FileNotFoundException fnfe) {
-			
-		}
-		catch(ConfigurationException | IOException mex) {
-			JOptionPane.showMessageDialog(null, mex, "Configuration Is Bad", JOptionPane.ERROR_MESSAGE);
-			System.exit(StaticStorageProperties.badExit);
+		catch(IOException ioe) {
+			;
 		}
         
         try {
@@ -692,9 +724,18 @@ public class TMMain {
 		}
 		
 		try {
-			SwingUtilities.invokeAndWait(() -> {
+			SwingUtilities.invokeLater(() -> {
 				try{
 					{
+						{
+							if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Starting JavaFX");
+							PrintStream eps = System.err;
+							System.setErr(new PrintStream(new ByteArrayOutputStream()));
+							new JFXPanel();
+							System.setErr(eps);
+						}
+						
+						if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Creating window");
 						if(StaticStorageProperties.SEMode) {
 							StaticWidget.window = new TMSEFM(StaticStorageProperties.baseTitle, () -> {
 								cdl.countDown();
@@ -705,6 +746,7 @@ public class TMMain {
 								cdl.countDown();
 							});
 						}
+						if(!StaticStorageProperties.logoff) StaticStorageProperties.logger.info("Window created");
 
 						// StaticWidget.window.setResizable(false);
 						StaticWidget.window.setMinimumSize(new Dimension(StaticWidget.winsize[0], StaticWidget.winsize[1]));
@@ -917,13 +959,6 @@ public class TMMain {
 							;
 						}
 					}
-					
-					{
-						PrintStream eps = System.err;
-						System.setErr(new PrintStream(new ByteArrayOutputStream()));
-						new JFXPanel();
-						System.setErr(eps);
-					}
 
 					StaticStorageProperties.editorUrl = "http://localhost:" + StaticStorageProperties.vport + "/src/MXPSQL/BKMTMEdit/WebEditor/index.html";
 					if(!StaticStorageProperties.logoff)
@@ -960,38 +995,116 @@ public class TMMain {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			PrintStream ps = new PrintStream(baos);
 			no.printStackTrace(ps);
-			String msg = baos.toString();
+			String msg = "";
 			try {
+				msg = baos.toString();
 				baos.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
 				e.printStackTrace();
+				msg = "";
 			}
 			ps.close();
-			System.err.println(msg);
 			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Assertion Failure", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has detected a problem durring self-assertion, halt and catch on fire");
-			JOptionPane.showMessageDialog(null, msg, "Assertion Failure during program runtime!", JOptionPane.ERROR_MESSAGE);
+			System.err.println(msg);
+			// JOptionPane.showMessageDialog(null, msg, "Assertion Failure during program runtime!", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("Assertion Failure", "Program has detected a problem durring self-assertion, halt and catch on fire", msg, "AssertionError", no, Level.SEVERE, new HashMap<String, String>()));
 			// Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 			System.exit(StaticStorageProperties.badExit);
 		}
 		/* No */
 		catch(OutOfMemoryError oom) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			oom.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e.printStackTrace();
+				msg = "";
+			}
+			ps.close();
 			// if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("Out of Memory! I will ragequit.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has ran out of memory, halt and catch on fire.");
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has ran out of memory. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			System.err.println(msg);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has ran out of memory. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("Out of memory (OOM)", "It seems that " + StaticStorageProperties.baseTitle + " has ran out of memory. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "Out of memory", oom, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(StackOverflowError soe){
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			soe.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
 			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("A stack overflow has occured, ragequitting", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has stAkCk 0Ve3rRFfflo0wed, halt and catch on fire.");
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			System.err.println(msg);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("sTACKoVerflow", "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "Stack overflow", soe, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(VirtualMachineError vme) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			vme.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
 			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("I am going to ragequit as fast as I can because the JVM (Java Virtual Machine) is in a teribbly broken state", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program's JVM (Java Virtual Machine) has experienced an error, halt and catch on fire.");
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + "'s JVM (Java Virtual Machine) has problems. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			System.err.println(msg);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + "'s JVM (Java Virtual Machine) has problems. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("Virtual machine error", "Program's JVM (Java Virtual Machine) has experienced an error, halt and catch on fire.", msg, "Virtual machine error", vme, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} 
+		/* not here */
+		catch(UnsupportedOperationException uoe) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			uoe.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
+			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("A stack overflow has occured, ragequitting", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
+			StaticStorageProperties.logger.error("Program has encountered unsupported condition, halt and catch on fire.");
+			System.err.println(msg);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Unsupported operation", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("UnsupportedOperationError", "It seems that " + StaticStorageProperties.baseTitle + " has stACk OverFLOWed. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "Unsupported operation", uoe, Level.SEVERE, new HashMap<String, String>()));
+			System.exit(StaticStorageProperties.abortExit);
+		}
 		/* await */
 		catch (InvocationTargetException | InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -999,23 +1112,72 @@ public class TMMain {
 		} 
 		/* Basic Error and Exception */
 		catch(Error err) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			err.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
 			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("A very serious error has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced a very serious error, a stack trace will be printed and halt and catch on fire.");
 			err.printStackTrace();
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced a serious error. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced a serious error. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("A serious error", "It seems that " + StaticStorageProperties.baseTitle + " has experienced a serious error. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "Serious error", err, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		} catch(Exception e) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			e.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e2) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e, Level.SEVERE, new HashMap<String, String>()));
+				e2.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
 			// if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("An exception has occured", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced an exception, a stack trace will be printed and halt and catch on fire.");
 			e.printStackTrace();
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an exception. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an exception. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("Look, an exception", "It seems that " + StaticStorageProperties.baseTitle + " has experienced an exception. \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "unhandled exception", e, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		}
 		/* IDK because it's not Error and Exception */
 		catch(Throwable t) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PrintStream ps = new PrintStream(baos);
+			t.printStackTrace(ps);
+			String msg = "";
+			try {
+				msg = baos.toString();
+				baos.close();
+			} catch (IOException e2) {
+				// TODO Auto-generated catch block
+				JXErrorPane.showDialog(null, new ErrorInfo("IOException", "Failed at getting stack trace", "Failure at obtaining stack trace", "IO Error", e2, Level.SEVERE, new HashMap<String, String>()));
+				e2.printStackTrace();
+				msg = "";
+			}
+			ps.close();
+			
 			if(StaticWidget.trayicon != null) StaticWidget.trayicon.displayMessage("The program has experienced a problem ok.", StaticStorageProperties.baseTitle, TrayIcon.MessageType.ERROR);
 			StaticStorageProperties.logger.error("Program has experienced an throwable (error/exception), halt and catch on fire.");
-			JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an unknown throwable (error/exception). \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			t.printStackTrace();
+			// JOptionPane.showMessageDialog(null, "It seems that " + StaticStorageProperties.baseTitle + " has experienced an unknown throwable (error/exception). \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", "Out of Memory (OOM)", JOptionPane.ERROR_MESSAGE);
+			JXErrorPane.showDialog(null, new ErrorInfo("It unhandled", "It seems that " + StaticStorageProperties.baseTitle + " has experienced an unknown throwable (error/exception). \n" + StaticStorageProperties.baseTitle + " will now terminate for your safety.", msg, "unhandled problem", t, Level.SEVERE, new HashMap<String, String>()));
 			Runtime.getRuntime().halt(StaticStorageProperties.abortExit);
 		}
 		
